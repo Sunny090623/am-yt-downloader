@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  am-yt-downloader:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: am-yt-downloader:latest
+    container_name: am-yt-downloader
+    restart: unless-stopped
+    ports:
+      - "5173:8000"
+    environment:
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - YTDLP_PATH=yt-dlp
+      - FFMPEG_PATH=ffmpeg
+      - DATA_DIR=/app/backend/data
+      - STORAGE_DIR=/app/backend/data/storage
+      - DATABASE_URL=sqlite+aiosqlite:////app/backend/data/app.db
+      - SECRET_KEY=synology-mediahub-super-secret-key-12345
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_SESSION_DAYS=7
+      - MAX_CONCURRENT_DOWNLOADS=2
+      - ANONYMOUS_DAILY_VIDEO_LIMIT=5
+      - FILE_RETENTION_HOURS=24
+      - CLEANUP_INTERVAL_MINUTES=15
+    volumes:
+      # Automatically mounts data & downloads storage relative to project root
+      - ./data:/app/backend/data
+      - ./storage:/app/backend/data/storage

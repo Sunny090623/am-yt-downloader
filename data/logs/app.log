@@ -1,6 +1,0 @@
-2026-08-23 11:28:07 [INFO] [am_yt_downloader:71]: [TaskManager] 新任务提交成功: ID=9596e6a8ab1f463e8995fa2ba4127e0b, 用户=c51268d67e6a4c489d166cc1604b0380, 服务=youtube, URL=https://youtu.be/1xw8-y4duDQ
-2026-08-23 11:28:08 [INFO] [am_yt_downloader:48]: [YouTubeDownloader] 正在解析元数据: https://youtu.be/1xw8-y4duDQ (使用引擎: /usr/local/bin/yt-dlp)
-2026-08-23 11:28:11 [INFO] [am_yt_downloader:68]: [YouTubeDownloader] 元数据解析成功: 'Meet Google Pixel 11 Pro | Attention-Grabbing. Not Attention-Seeking.' (发布者: Made by Google, 时长: 30s)
-2026-08-23 11:28:12 [INFO] [am_yt_downloader:118]: [Task 9596e6a8ab1f463e8995fa2ba4127e0b] 开始下载命令: /usr/local/bin/yt-dlp --newline --no-warnings --no-playlist --no-abort-on-error --retries... URL: https://youtu.be/1xw8-y4duDQ
-2026-08-23 11:28:20 [INFO] [am_yt_downloader:130]: [Task 9596e6a8ab1f463e8995fa2ba4127e0b] 下载并合并完成: Meet Google Pixel 11 Pro ｜ Attention-Grabbing. Not Attention-Seeking..mkv (大小: 8445710 字节)
-2026-08-23 11:28:30 [INFO] [am_yt_downloader:185]: [TasksAPI] 用户 c51268d67e6a4c489d166cc1604b0380 手动删除了任务 9596e6a8ab1f463e8995fa2ba4127e0b 及其文件 (配额不回退)

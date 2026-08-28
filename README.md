@@ -16,6 +16,7 @@
 
 - [X]  **适配 Apple Music 下载**：接入 Apple Music 下载引擎，支持单曲 (Single) 与专辑 (Album) 独立额度管理、无损音质解析及完整元数据标签写入。
 - [X]  **Docker 镜像构建性能优化**：引入全量 `.dockerignore` 上下文拦截、本地 Go 源码编译加速、Pip pre-built wheels 预拉取及多阶段层级复用，将首次构建耗时从 30 分钟大幅降低至 1~2 分钟。
+- [ ]  适配`apple-music-downloader`中所有的可选参数。
 
 ---
 
@@ -110,6 +111,8 @@
 - ❌ **无需**在群晖宿主机上手动安装 Conda、Python、FFmpeg 或 yt-dlp；
 - ❌ **无需**在宿主机上手动新建文件夹（Docker 会自动挂载并初始化）；
 - ❌ **无需**单独部署前端或配置 Nginx 反向代理。
+
+注意：请参考[wrapper](https://github.com/WorldObservationLog/wrapper)提前安装必要依赖。如果是黑群晖推荐使用PVE进行安装。
 
 ### 🚀 一键启动步骤
 

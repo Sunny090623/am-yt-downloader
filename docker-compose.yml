@@ -16,6 +16,9 @@ services:
       - PORT=8000
       - YTDLP_PATH=yt-dlp
       - FFMPEG_PATH=ffmpeg
+      - GPAC_PATH=MP4Box
+      - APPLE_MUSIC_DIR=/app/apple-music
+      - APPLE_MUSIC_BINARY=/usr/local/bin/apple-music-downloader
       - DATA_DIR=/app/backend/data
       - STORAGE_DIR=/app/backend/data/storage
       - DATABASE_URL=sqlite+aiosqlite:////app/backend/data/app.db

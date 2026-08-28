@@ -49,20 +49,18 @@ class SSEHub:
     async def broadcast_task_update(self, user_id: str, update: TaskProgressUpdate) -> None:
         """Broadcasts a task progress update to matching user and admin connections."""
         data = update.model_dump(mode="json")
+        targets = []
         async with self._lock:
-            # 1. Send to specific user queues
             if user_id in self._user_subscribers:
-                for q in self._user_subscribers[user_id]:
-                    try:
-                        q.put_nowait(data)
-                    except asyncio.QueueFull:
-                        pass
-            
-            # 2. Send to all admin queues
-            for q in self._admin_subscribers:
-                try:
-                    q.put_nowait(data)
-                except asyncio.QueueFull:
-                    pass
+                targets.extend(self._user_subscribers[user_id])
+            if self._admin_subscribers:
+                targets.extend(self._admin_subscribers)
+
+        for q in targets:
+            try:
+                q.put_nowait(data)
+            except asyncio.QueueFull:
+                pass
+
 
 sse_hub = SSEHub()

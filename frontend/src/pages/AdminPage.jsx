@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
   HardDrive, 
@@ -36,6 +36,7 @@ export default function AdminPage({
   const [logs, setLogs] = useState('');
   const [loading, setLoading] = useState(true);
   const [cleaning, setCleaning] = useState(false);
+  const logContainerRef = useRef(null);
 
   const loadStats = async () => {
     try {
@@ -61,6 +62,14 @@ export default function AdminPage({
     loadStats();
     loadLogs();
   }, []);
+
+  // Automatically scroll to the latest log line whenever logs update
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
 
   const handleCleanup = async () => {
     setCleaning(true);
@@ -159,11 +168,16 @@ export default function AdminPage({
               <Server size={16} />
               <span>核心组件状态</span>
             </div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              yt-dlp: <span style={{ color: stats.yt_dlp_version.includes('未安装') ? '#ef4444' : '#10b981' }}>{stats.yt_dlp_version}</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              ffmpeg: {stats.ffmpeg_available ? <span style={{ color: '#10b981' }}>✓ 正常就绪</span> : <span style={{ color: '#ef4444' }}>✗ 未就绪</span>}
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div>yt-dlp: <span style={{ color: stats.yt_dlp_version.includes('未安装') ? '#ef4444' : '#10b981' }}>{stats.yt_dlp_version}</span></div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                ffmpeg: {stats.ffmpeg_available ? <span style={{ color: '#10b981' }}>✓ 就绪</span> : <span style={{ color: '#ef4444' }}>✗ 未就绪</span>}
+                &nbsp;|&nbsp;
+                MP4Box: {stats.mp4box_version && !stats.mp4box_version.includes('未安装') ? <span style={{ color: '#10b981' }}>✓ 就绪</span> : <span style={{ color: '#f59e0b' }}>未安装</span>}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                Apple Music: {stats.apple_music_available ? <span style={{ color: '#10b981' }}>✓ 配置就绪</span> : <span style={{ color: '#ef4444' }}>✗ 未配置</span>}
+              </div>
             </div>
           </div>
         </div>
@@ -236,6 +250,7 @@ export default function AdminPage({
           </button>
         </div>
         <pre
+          ref={logContainerRef}
           style={{
             background: 'var(--bg-primary)',
             border: '1px solid var(--border-subtle)',
@@ -248,11 +263,13 @@ export default function AdminPage({
             overflowY: 'auto',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
-            lineHeight: 1.5
+            lineHeight: 1.5,
+            scrollBehavior: 'smooth'
           }}
         >
           {logs || '正在获取日志...'}
         </pre>
+
       </div>
     </div>
   );

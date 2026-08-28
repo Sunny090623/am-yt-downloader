@@ -1,2 +1,91 @@
-/data
-/storage
+# ==============================================================================
+# Git Ignore Configuration for AM-YT Downloader
+# ==============================================================================
+
+# Python Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Node / Frontend dependencies & build artifacts
+node_modules/
+**/node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm
+.eslintcache
+
+# Database, Runtime Media & Storage (Gigabytes of media)
+data/
+storage/
+**/data/
+**/storage/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Downloaded Media Files & Temporary Fragments
+*.mkv
+*.mp4
+*.m4a
+*.flac
+*.mp3
+*.wav
+*.zip
+*.part
+*.ytdl
+*.temp
+
+# Apple Music Downloader temporary download artifacts & binaries
+apple-music/AM-DL*/
+apple-music/AM-DL downloads/
+apple-music/bin/
+apple-music/apple-music-downloader
+apple-music/apple-music-downloader.exe
+apple-music/main.exe
+apple-music/config.yaml
+!apple-music/config.yaml.example
+
+
+# Logs
+logs/
+*.log
+data/logs/
+backend/data/logs/
+
+# Testing & Coverage
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary / Scratch & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+scratch/
+.tempmediaStorage/
+.user_uploaded/
+artifact.md
+gpac-download.pdf
+
+# External reference directory
+wrapper/

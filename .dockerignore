@@ -1,0 +1,47 @@
+# Root .dockerignore to optimize Docker build context transfer
+
+# Version Control
+.git
+.gitignore
+.github
+
+# Data & Storage Directories (Gigabytes of media)
+data/
+storage/
+**/data/**
+**/storage/**
+backend/data/
+backend/data/*
+apple-music/AM-DL downloads/
+apple-music/AM-DL*
+
+
+# Node / Frontend Artifacts
+frontend/node_modules/
+**/node_modules/
+frontend/.vite/
+frontend/dist/
+
+# Python Cache & Testing
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+**/.pytest_cache/
+backend/.pytest_cache/
+
+# Large Binary & Documentation Files
+*.pdf
+gpac-download.pdf
+wrapper/
+.tempmediaStorage/
+.user_uploaded/
+scratch/
+
+# OS / Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

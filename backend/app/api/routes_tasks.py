@@ -51,19 +51,25 @@ async def create_download_task(
     db: AsyncSession = Depends(get_db)
 ):
     """Submits a new media download task."""
-    if req.service_type == ServiceType.APPLE_MUSIC:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Apple Music 下载服务暂未开放"
-        )
-
     task_id = uuid.uuid4().hex
+    
+    # Determine media_type based on service_type & URL structure
+    if req.service_type == ServiceType.APPLE_MUSIC:
+        from app.core.url_validator import validate_and_sanitize_apple_music_url
+        is_valid, sanitized_url, am_type, err = validate_and_sanitize_apple_music_url(req.url)
+        if not is_valid:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err or "无效的 Apple Music 链接")
+        
+        media_type = MediaType.SINGLE if am_type == "song" else MediaType.ALBUM
+    else:
+        media_type = MediaType.VIDEO
+
     try:
         task = await task_manager.submit_task(
             task_id=task_id,
             user_id=user_ctx.user_id,
             service_type=req.service_type,
-            media_type=MediaType.VIDEO,
+            media_type=media_type,
             url=req.url,
             is_admin=user_ctx.is_admin
         )
@@ -187,11 +193,13 @@ async def user_delete_task(
 
 @router.post("/clear-finished")
 async def clear_finished_tasks(
+    service_type: Optional[str] = Query(default=None, description="Filter by service type (youtube / apple_music)"),
     user_ctx: UserContext = Depends(get_current_user_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Clears all finished (completed, failed, cancelled, interrupted, expired) tasks and files for current user.
+    Clears finished (completed, failed, cancelled, interrupted, expired) tasks and files for current user.
+    Optionally scoped to a specific service_type.
     Quota is strictly NOT refunded for completed downloads.
     """
     import shutil
@@ -209,11 +217,15 @@ async def clear_finished_tasks(
     stmt = select(DownloadTask).where(
         DownloadTask.status.in_(finished_statuses)
     )
+    if service_type:
+        stmt = stmt.where(DownloadTask.service_type == service_type)
+
     if not user_ctx.is_admin:
         stmt = stmt.where(DownloadTask.user_id == user_ctx.user_id)
 
     res = await db.execute(stmt)
     tasks_to_clear = res.scalars().all()
+
 
     cleared_count = 0
     for task in tasks_to_clear:

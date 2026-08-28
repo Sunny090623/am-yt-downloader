@@ -1,12 +1,9 @@
 import React from 'react';
 import { Youtube, Music, ArrowRight } from 'lucide-react';
 
-export default function HomePage({ onSelectService, addToast }) {
-  const handleAppleMusicClick = () => {
-    addToast('Apple Music 下载服务暂未开放', 'info');
-  };
-
+export default function HomePage({ onSelectService }) {
   return (
+
     <div>
       <div style={{ textAlign: 'center', margin: '1.5rem 0 2.5rem' }}>
         <h1 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.025em', marginBottom: '0.75rem' }}>
@@ -37,20 +34,20 @@ export default function HomePage({ onSelectService, addToast }) {
         </div>
 
         {/* Apple Music Card */}
-        <div className="service-card apple-card" onClick={handleAppleMusicClick}>
-          <div className="service-badge badge-disabled">暂未开放</div>
+        <div className="service-card apple-card" onClick={() => onSelectService('apple_music')}>
+          <div className="service-badge badge-active" style={{ background: 'rgba(250, 35, 59, 0.15)', color: '#fa233b', borderColor: 'rgba(250, 35, 59, 0.3)' }}>已就绪</div>
           <div>
             <div className="service-icon-box am">
               <Music size={32} />
             </div>
             <div className="service-title">Apple Music Downloader</div>
             <div className="service-desc">
-              高保真无损音频流与专辑封面提取方案正在开发中，敬请期待下一阶段更新。
+              支持单曲与整张专辑原声母带提取，自动写入 iTunes 标签与封面，整张专辑一键打包 ZIP。
             </div>
           </div>
           <div className="service-footer">
-            <span style={{ color: 'var(--text-muted)' }}>暂未开放</span>
-            <ArrowRight size={18} color="var(--text-muted)" />
+            <span style={{ color: 'var(--apple-pink, #fa233b)' }}>立即使用</span>
+            <ArrowRight size={18} color="var(--apple-pink, #fa233b)" />
           </div>
         </div>
       </div>

@@ -2,18 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import ToastContainer from './components/Toast';
 import AdminModal from './components/AdminModal';
+import SettingsModal from './components/SettingsModal';
 import HomePage from './pages/HomePage';
 import YouTubePage from './pages/YouTubePage';
+import AppleMusicPage from './pages/AppleMusicPage';
 import AdminPage from './pages/AdminPage';
 import { fetchAuthStatus, fetchTasks, subscribeToTaskEvents } from './services/api';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'youtube' | 'admin'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'youtube' | 'apple_music' | 'admin'
   const [isDark, setIsDark] = useState(true);
   const [authStatus, setAuthStatus] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+
 
   // Theme Sync
   useEffect(() => {
@@ -83,9 +87,9 @@ export default function App() {
             {
               id: update.task_id,
               user_id: authStatus?.user_id || 'me',
-              service_type: 'youtube',
-              media_type: 'video',
-              url: update.title || 'YouTube Media',
+              service_type: update.service_type || 'youtube',
+              media_type: update.media_type || (update.service_type === 'apple_music' ? 'single' : 'video'),
+              url: update.title || (update.service_type === 'apple_music' ? 'Apple Music Media' : 'YouTube Media'),
               title: update.title,
               thumbnail_url: update.thumbnail_url,
               status: update.status,
@@ -95,6 +99,7 @@ export default function App() {
             },
             ...prevTasks
           ];
+
         }
       });
 
@@ -118,6 +123,7 @@ export default function App() {
         setIsDark={setIsDark}
         authStatus={authStatus}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
 
       <main style={{ flex: 1 }}>
@@ -125,10 +131,11 @@ export default function App() {
           <HomePage
             onSelectService={(service) => {
               if (service === 'youtube') setCurrentPage('youtube');
+              if (service === 'apple_music') setCurrentPage('apple_music');
             }}
-            addToast={addToast}
           />
         )}
+
 
         {currentPage === 'youtube' && (
           <YouTubePage
@@ -137,6 +144,17 @@ export default function App() {
             refreshAuth={refreshAuth}
             authStatus={authStatus}
             addToast={addToast}
+          />
+        )}
+
+        {currentPage === 'apple_music' && (
+          <AppleMusicPage
+            tasks={tasks}
+            refreshTasks={refreshTasks}
+            refreshAuth={refreshAuth}
+            authStatus={authStatus}
+            addToast={addToast}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
           />
         )}
 
@@ -151,6 +169,18 @@ export default function App() {
         )}
       </main>
 
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        authStatus={authStatus}
+        onOpenAdminLogin={() => {
+          setIsSettingsModalOpen(false);
+          setIsAdminModalOpen(true);
+        }}
+        addToast={addToast}
+      />
+
       {/* Admin Login Dialog */}
       <AdminModal
         isOpen={isAdminModalOpen}
@@ -164,5 +194,6 @@ export default function App() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
+
   );
 }

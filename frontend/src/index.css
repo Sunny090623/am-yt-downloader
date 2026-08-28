@@ -220,16 +220,19 @@ body {
 }
 
 .service-card.apple-card {
-  opacity: 0.88;
-  cursor: not-allowed;
+  cursor: pointer;
   background: var(--bg-card);
-  border: 1px dashed var(--border-subtle);
+  border: 1px solid var(--border-subtle);
 }
 
 .service-card.apple-card:hover {
-  border-color: rgba(250, 45, 72, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -6px rgba(250, 45, 72, 0.15);
+  transform: translateY(-4px);
+  border-color: rgba(250, 35, 59, 0.4);
+  box-shadow: 0 16px 36px -8px rgba(250, 35, 59, 0.25);
+}
+
+.service-card.apple-card:hover::before {
+  background: linear-gradient(135deg, #fa233b 0%, #fb5c74 100%);
 }
 
 .service-badge {

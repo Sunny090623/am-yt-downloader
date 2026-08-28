@@ -45,14 +45,40 @@ async def test_api_auth_status_and_cookie_generation(app_test_client):
     assert "amyt_device_token" in resp.cookies
 
 @pytest.mark.asyncio
-async def test_api_reject_apple_music_submission(app_test_client):
+async def test_api_create_apple_music_album_submission(app_test_client):
     client, _, _ = app_test_client
     resp = await client.post("/api/tasks", json={
-        "url": "https://music.apple.com/us/album/test/123",
+        "url": "https://music.apple.com/us/album/whenever-you-need-somebody-2022-remaster/1624945511",
         "service_type": "apple_music"
     })
-    assert resp.status_code == 400
-    assert "暂未开放" in resp.json()["detail"]
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["service_type"] == "apple_music"
+    assert data["media_type"] == "album"
+
+    # Verify quota updated
+    auth_resp = await client.get("/api/auth/status")
+    auth_data = auth_resp.json()
+    assert auth_data["quota"]["album_used"] == 1
+    assert auth_data["quota"]["album_remaining"] == 4
+
+@pytest.mark.asyncio
+async def test_api_create_apple_music_song_submission(app_test_client):
+    client, _, _ = app_test_client
+    resp = await client.post("/api/tasks", json={
+        "url": "https://music.apple.com/us/song/you-move-me-2022-remaster/1624945520",
+        "service_type": "apple_music"
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["service_type"] == "apple_music"
+    assert data["media_type"] == "single"
+
+    # Verify quota updated
+    auth_resp = await client.get("/api/auth/status")
+    auth_data = auth_resp.json()
+    assert auth_data["quota"]["single_used"] == 1
+    assert auth_data["quota"]["single_remaining"] == 9
 
 @pytest.mark.asyncio
 async def test_api_reject_invalid_youtube_url(app_test_client):

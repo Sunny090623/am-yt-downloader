@@ -69,8 +69,11 @@ export async function deleteTask(taskId) {
   return data;
 }
 
-export async function clearFinishedTasks() {
-  const res = await fetch(`${BASE_URL}/api/tasks/clear-finished`, {
+export async function clearFinishedTasks(serviceType = null) {
+  const url = serviceType 
+    ? `${BASE_URL}/api/tasks/clear-finished?service_type=${encodeURIComponent(serviceType)}`
+    : `${BASE_URL}/api/tasks/clear-finished`;
+  const res = await fetch(url, {
     method: 'POST',
     credentials: 'include'
   });
@@ -78,6 +81,7 @@ export async function clearFinishedTasks() {
   if (!res.ok) throw new Error(data.detail || '一键清除任务失败');
   return data;
 }
+
 
 export async function fetchAdminStats() {
   const res = await fetch(`${BASE_URL}/api/admin/stats`, {
@@ -117,7 +121,46 @@ export async function fetchAdminLogs() {
   return data.logs;
 }
 
+export async function fetchAppleMusicSettings() {
+  const res = await fetch(`${BASE_URL}/api/admin/settings/apple-music`, {
+    credentials: 'include'
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '获取 Apple Music 配置失败');
+  return data;
+}
+
+export async function saveAppleMusicSettings(wrapperIp, mediaUserToken) {
+  const res = await fetch(`${BASE_URL}/api/admin/settings/apple-music`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      wrapper_ip: wrapperIp,
+      media_user_token: mediaUserToken
+    }),
+    credentials: 'include'
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '保存 Apple Music 配置失败');
+  return data;
+}
+
+export async function testWrapperConnection(wrapperIp) {
+  const res = await fetch(`${BASE_URL}/api/admin/settings/apple-music/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      wrapper_ip: wrapperIp
+    }),
+    credentials: 'include'
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '测试连通性失败');
+  return data;
+}
+
 export function subscribeToTaskEvents(onTaskUpdate) {
+
   const eventSource = new EventSource(`${BASE_URL}/api/tasks/events`, {
     withCredentials: true
   });

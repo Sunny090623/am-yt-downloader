@@ -4,24 +4,33 @@
 
 ## 📌 开发计划 (Roadmap)
 
-- [ ] **适配 Apple Music 下载**：接入 Apple Music 下载引擎，支持单曲 (Single) 与专辑 (Album) 独立额度管理、无损音质解析及完整元数据标签写入。
+- [X]  **适配 Apple Music 下载**：接入 Apple Music 下载引擎，支持单曲 (Single) 与专辑 (Album) 独立额度管理、无损音质解析及完整元数据标签写入。
+- [X]  **Docker 镜像构建性能优化**：引入全量 `.dockerignore` 上下文拦截、本地 Go 源码编译加速、Pip pre-built wheels 预拉取及多阶段层级复用，将首次构建耗时从 30 分钟大幅降低至 1~2 分钟。
 
 ---
 
 ## 🌟 核心特性
 
 - **YouTube 高清流式下载**：基于 `yt-dlp`，默认最佳画质音视频自动合并封装，不额外重编码，极速且节省 NAS 性能。
-- **真机实时进度 (SSE)**：采用 Server-Sent Events 流式推送百分比、下载速度、预估剩余时间 (ETA) 与状态转换，断网/刷新自动重连。
+- **Apple Music 原声母带下载**：集成 `apple-music-downloader`，支持单曲 (M4A) 与整张专辑 (ZIP) 一键提取，自动写入 iTunes 标签元数据与封面。
+- **真机实时进度 (SSE)**：采用 Server-Sent Events 流式推送百分比、曲目进度（如 `Track 1 of 6`）、下载速度、预估剩余时间 (ETA) 与状态转换，断网/刷新自动重连。
 - **一体化交互界面**：输入链接、下载控制、实时进度与文件保存全部在同一个现代化单页内完成，支持自适应暗色/亮色模式与移动端触控适配。
-- **合规匿名配额系统**：通过服务端签名 HttpOnly Cookie 进行设备识别，实现普通用户每日 5 个视频额度限制，任务异常/取消自动返还配额。
+- **合规匿名配额系统**：通过服务端签名 HttpOnly Cookie 进行设备识别，实现普通用户每日 5 个视频、5 张专辑、10 首单曲独立额度限制，任务异常/取消自动返还配额。
 - **安全可撤销的管理员会话**：数据库驱动的 7 天有效 Session，支持无限下载与全局任务/存储管控，退出登录立即撤销凭据。
 - **24小时物理过期清理**：以 `expires_at = completed_at + 24h` 为准，后台轻量异步协程定时自动删除过期磁盘文件与临时碎片。
-- **Apple Music 扩展架构**：统一的 `BaseDownloader` 抽象层，第一阶段保留入口与友好提示，未来接入新平台无需重构核心逻辑。
 - **系统级安全隔离**：严禁 Shell 拼接与 `shell=True`，彻底杜绝命令注入；严格校验文件存储路径与文件归属权，抵御路径穿越攻击。
 
 ---
 
+## ⚠️已知问题
+
+* 单曲下载无法正确写入歌词，但貌似为Apple Muic Downloader的问题，等待更新中。
+
+---
+
 ## 🛠️ Windows 本地开发与测试指南
+
+注意：请参考[apple-music-downloader](https://github.com/zhaarey/apple-music-downloader)以及[wrapper](https://github.com/WorldObservationLog/wrapper)提前安装必要依赖。
 
 ### 1. 后端准备与启动
 
@@ -96,19 +105,52 @@
 
 1. 将整个项目文件夹复制到群晖 NAS（例如 `/volume1/docker/am-yt-downloader`）或服务器；
 2. 在该目录下直接执行一行命令：
+
    ```bash
    docker compose up -d --build
    ```
 
    *(或在群晖 **Container Manager -> 项目 (Project)** 中选择该目录并点击“构建并启动”)*；
 3. 启动完成后，直接在浏览器中打开：
+
    ```text
    http://<NAS_IP>:5173
    ```
 
-   即可直接进入功能完整的 MediaHub 网站！无需任何额外配置。
+---
+
+## 🎵 Apple Music 与 Wrapper 服务端配置
+
+Apple Music 下载依赖于局域网内运行的 Apple Music Wrapper 解密服务。系统支持两种便捷的配置方式：
+
+### 方式一：网页端可视化一键配置（推荐）
+
+1. 打开网页端，点击右上角 **管理员登录**（默认密码：`admin123`，生产环境建议在 `.env` 中修改 `ADMIN_PASSWORD`）；
+2. 点击导航栏右上角或 Apple Music 页面的 **⚙️ 设置** 按钮打开配置面板；
+3. 输入你的 Wrapper 服务所在设备 IP（例如 `192.168.3.154`）和 Apple Music `media-user-token`；
+4. 点击 **“测试连接”** 即刻验证端口连通性，确认后点击 **“保存并应用配置”**，系统会自动格式化并安全写入 `apple-music/config.yaml`。
+
+### 方式二：手动编辑配置文件
+
+1. 将 `apple-music/config.yaml.example` 复制为 `apple-music/config.yaml`（若尚不存在）；
+2. 打开 `apple-music/config.yaml`，根据实际情况修改如下字段：
+   ```yaml
+   media-user-token: "你的-media-user-token"   # 获取 AAC-LC 与歌词所需凭据 (可选)
+   decrypt-m3u8-port: "192.168.3.154:10020" # Wrapper 解密端口
+   get-m3u8-port: "192.168.3.154:20020"     # Wrapper m3u8 获取端口
+   ```
+3. 网页端每次打开或刷新均会自动读取 `config.yaml` 的最新配置，无需重启服务。
 
 ---
+
+## 🤝引用
+
+* [Wrapper](https://github.com/WorldObservationLog/wrapper)
+* [apple-music-downloader](https://github.com/zhaarey/apple-music-downloader)
+
+---
+
+
 
 ## 📁 目录结构
 

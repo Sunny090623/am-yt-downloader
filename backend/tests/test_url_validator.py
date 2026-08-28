@@ -58,3 +58,36 @@ def test_reject_empty_or_invalid_scheme():
     is_valid, _, err = validate_and_sanitize_youtube_url("ftp://youtube.com/watch?v=123")
     assert is_valid is False
     assert "仅支持 http / https" in err
+
+from app.core.url_validator import validate_and_sanitize_apple_music_url
+
+def test_valid_apple_music_album_url():
+    url = "https://music.apple.com/us/album/whenever-you-need-somebody-2022-remaster/1624945511?ls=1"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is True
+    assert sanitized == "https://music.apple.com/us/album/whenever-you-need-somebody-2022-remaster/1624945511"
+    assert media_type == "album"
+    assert err is None
+
+def test_valid_apple_music_song_url_with_i_param():
+    url = "https://music.apple.com/us/album/never-gonna-give-you-up-2022-remaster/1624945511?i=1624945512&ls=1"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is True
+    assert sanitized == "https://music.apple.com/us/album/never-gonna-give-you-up-2022-remaster/1624945511?i=1624945512"
+    assert media_type == "song"
+    assert err is None
+
+def test_valid_apple_music_direct_song_url():
+    url = "https://music.apple.com/us/song/you-move-me-2022-remaster/1624945520"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is True
+    assert sanitized == "https://music.apple.com/us/song/you-move-me-2022-remaster/1624945520"
+    assert media_type == "song"
+    assert err is None
+
+def test_reject_apple_music_invalid_domain():
+    url = "https://spotify.com/album/123"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is False
+    assert media_type is None
+    assert "不支持的域名" in err

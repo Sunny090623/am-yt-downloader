@@ -131,3 +131,66 @@ def validate_and_sanitize_youtube_url(raw_url: str) -> Tuple[bool, Optional[str]
         return True, clean_url, None
 
     return False, None, "未能识别有效的 YouTube 视频或歌单路径"
+
+
+APPLE_MUSIC_VALID_HOSTS = {
+    "music.apple.com",
+    "beta.music.apple.com",
+    "classical.music.apple.com"
+}
+
+def validate_and_sanitize_apple_music_url(raw_url: str) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
+    """
+    Validates and categorizes an Apple Music URL.
+    Returns: (is_valid: bool, sanitized_url: Optional[str], media_type: Optional[str], error_message: Optional[str])
+    where media_type is 'song' or 'album'.
+    """
+    if not raw_url or not isinstance(raw_url, str):
+        return False, None, None, "URL 不能为空"
+    
+    raw_url = raw_url.strip()
+    if not raw_url:
+        return False, None, None, "URL 不能为空"
+    
+    if "://" in raw_url:
+        scheme_prefix = raw_url.split("://", 1)[0].lower()
+        if scheme_prefix not in ("http", "https"):
+            return False, None, None, f"仅支持 http / https 协议，不支持 '{scheme_prefix}'"
+    else:
+        raw_url = "https://" + raw_url
+        
+    try:
+        parsed = urllib.parse.urlparse(raw_url)
+    except Exception:
+        return False, None, None, "无法解析 URL 格式"
+        
+    hostname = (parsed.hostname or "").lower()
+    if hostname not in APPLE_MUSIC_VALID_HOSTS:
+        return False, None, None, f"不支持的域名: {hostname}。仅支持 Apple Music 链接 (music.apple.com)"
+        
+    path = parsed.path
+    query_params = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+    
+    # Check if song URL: /song/ or /album/... with ?i=
+    if "/song/" in path:
+        clean_path = re.sub(r"[^a-zA-Z0-9_\-\./]", "", path)
+        if ".." in clean_path:
+            return False, None, None, "检测到非法的路径遍历字符"
+        sanitized = f"https://music.apple.com{clean_path}"
+        return True, sanitized, "song", None
+        
+    if "/album/" in path:
+        clean_path = re.sub(r"[^a-zA-Z0-9_\-\./]", "", path)
+        if ".." in clean_path:
+            return False, None, None, "检测到非法的路径遍历字符"
+        if "i" in query_params and query_params["i"] and query_params["i"][0]:
+            clean_i = sanitize_id(query_params["i"][0])
+            if clean_i:
+                sanitized = f"https://music.apple.com{clean_path}?i={clean_i}"
+                return True, sanitized, "song", None
+        
+        sanitized = f"https://music.apple.com{clean_path}"
+        return True, sanitized, "album", None
+        
+    return False, None, None, "无法识别的 Apple Music 链接类型，仅支持单曲 (Song) 或专辑 (Album)"
+

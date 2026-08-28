@@ -44,6 +44,8 @@ class TaskProgressUpdate(BaseModel):
     task_id: str
     status: str
     progress_percent: float
+    service_type: Optional[str] = None
+    media_type: Optional[str] = None
     download_speed: Optional[str] = None
     eta: Optional[str] = None
     downloaded_bytes: Optional[int] = None
@@ -55,3 +57,4 @@ class TaskProgressUpdate(BaseModel):
     file_size: Optional[int] = None
     completed_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
+

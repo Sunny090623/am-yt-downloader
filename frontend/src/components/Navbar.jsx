@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Shield, Sun, Moon, LogIn, ArrowLeft } from 'lucide-react';
+import { Download, Shield, Sun, Moon, LogIn, ArrowLeft, Settings } from 'lucide-react';
 
 export default function Navbar({
   currentPage,
@@ -7,8 +7,10 @@ export default function Navbar({
   isDark,
   setIsDark,
   authStatus,
-  onOpenAdminModal
+  onOpenAdminModal,
+  onOpenSettings
 }) {
+
   return (
     <header className="navbar">
       <div className="brand" onClick={() => setCurrentPage('home')}>
@@ -32,8 +34,29 @@ export default function Navbar({
           </div>
         ) : (
           authStatus?.quota && (
-            <div className="quota-pill" title="今日普通用户剩余视频下载额度">
-              <span>今日剩余: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+            <div
+              className="quota-pill"
+              title="今日下载配额 (普通用户每日自动重置)"
+            >
+              {currentPage === 'youtube' && (
+                <span>视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+              )}
+              {currentPage === 'apple_music' && (
+                <>
+                  <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
+                  <span style={{ opacity: 0.4 }}>|</span>
+                  <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                </>
+              )}
+              {currentPage !== 'youtube' && currentPage !== 'apple_music' && (
+                <>
+                  <span>视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+                  <span style={{ opacity: 0.4 }}>|</span>
+                  <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
+                  <span style={{ opacity: 0.4 }}>|</span>
+                  <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                </>
+              )}
             </div>
           )
         )}
@@ -48,6 +71,15 @@ export default function Navbar({
             <ArrowLeft size={18} />
           </button>
         )}
+
+        {/* Settings Button */}
+        <button
+          className="icon-btn"
+          onClick={onOpenSettings}
+          title="系统服务配置 (Wrapper IP / 凭据)"
+        >
+          <Settings size={18} />
+        </button>
 
         {/* Theme Toggle */}
         <button
@@ -70,3 +102,4 @@ export default function Navbar({
     </header>
   );
 }
+

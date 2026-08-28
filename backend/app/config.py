@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     YTDLP_PATH: str = Field(default="yt-dlp", description="Executable path or command for yt-dlp")
     FFMPEG_PATH: str = Field(default="ffmpeg", description="Executable path or command for ffmpeg")
     FFPROBE_PATH: str = Field(default="ffprobe", description="Executable path or command for ffprobe")
+    GPAC_PATH: str = Field(default="MP4Box", description="Executable path or command for MP4Box (GPAC)")
+    APPLE_MUSIC_DIR: Path = Field(
+        default_factory=lambda: (Path(__file__).resolve().parent.parent.parent / "apple-music" if (Path(__file__).resolve().parent.parent.parent / "apple-music").exists() else Path("./apple-music")),
+        description="Path to apple-music directory containing config.yaml"
+    )
+    APPLE_MUSIC_BINARY: str = Field(default="apple-music-downloader", description="Path or command for apple-music binary")
     
     # Storage & Database paths
     DATA_DIR: Path = Field(default=Path("./data"), description="Base data directory")
@@ -42,12 +48,17 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    _cached_admin_hash: Optional[str] = None
+
     def get_admin_password_hash(self) -> str:
         if self.ADMIN_PASSWORD_HASH:
             return self.ADMIN_PASSWORD_HASH
+        if self._cached_admin_hash:
+            return self._cached_admin_hash
         if self.ADMIN_PASSWORD:
             salt = bcrypt.gensalt()
-            return bcrypt.hashpw(self.ADMIN_PASSWORD.encode("utf-8")[:72], salt).decode("utf-8")
+            self._cached_admin_hash = bcrypt.hashpw(self.ADMIN_PASSWORD.encode("utf-8")[:72], salt).decode("utf-8")
+            return self._cached_admin_hash
         return ""
 
 settings = Settings()
@@ -56,3 +67,24 @@ settings = Settings()
 settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
 settings.STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 settings.TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+# Pre-cache admin password hash
+settings.get_admin_password_hash()
+
+# Production Security Sanity Checks
+if settings.ENVIRONMENT == "production":
+    if settings.SECRET_KEY == "dev-insecure-secret-key-change-in-production-123456789":
+        import warnings
+        warnings.warn(
+            "[SECURITY CRITICAL] SECRET_KEY 正在使用默认不安全密钥！请立即在生产环境 .env 中配置高强度的 SECRET_KEY！",
+            RuntimeWarning,
+            stacklevel=2
+        )
+    if settings.ADMIN_PASSWORD == "admin123" and not settings.ADMIN_PASSWORD_HASH:
+        import warnings
+        warnings.warn(
+            "[SECURITY WARNING] ADMIN_PASSWORD 正在使用默认密码 'admin123'！请在生产环境 .env 中修改 ADMIN_PASSWORD 或 ADMIN_PASSWORD_HASH！",
+            RuntimeWarning,
+            stacklevel=2
+        )
+

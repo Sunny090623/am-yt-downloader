@@ -33,12 +33,44 @@ async def get_or_create_daily_usage(db: AsyncSession, user_id: str, today: Optio
         
     return usage
 
+async def check_and_consume_quota(
+    db: AsyncSession,
+    user_id: str,
+    is_admin: bool,
+    media_type: MediaType = MediaType.VIDEO
+) -> Tuple[bool, Optional[str]]:
+    """
+    Atomically checks and consumes 1 unit of daily quota inside the active DB transaction.
+    Returns (allowed, error_message).
+    """
+    if is_admin:
+        return True, None
+        
+    usage = await get_or_create_daily_usage(db, user_id)
+    
+    if media_type == MediaType.VIDEO:
+        if usage.video_count >= settings.ANONYMOUS_DAILY_VIDEO_LIMIT:
+            return False, f"今日视频下载额度已用完 (上限 {settings.ANONYMOUS_DAILY_VIDEO_LIMIT} 个/天)"
+        usage.video_count += 1
+    elif media_type == MediaType.ALBUM:
+        if usage.album_count >= settings.ANONYMOUS_DAILY_ALBUM_LIMIT:
+            return False, f"今日专辑下载额度已用完 (上限 {settings.ANONYMOUS_DAILY_ALBUM_LIMIT} 张/天)"
+        usage.album_count += 1
+    elif media_type == MediaType.SINGLE:
+        if usage.single_count >= settings.ANONYMOUS_DAILY_SINGLE_LIMIT:
+            return False, f"今日单曲下载额度已用完 (上限 {settings.ANONYMOUS_DAILY_SINGLE_LIMIT} 首/天)"
+        usage.single_count += 1
+        
+    await db.commit()
+    return True, None
+
 async def check_quota(
     db: AsyncSession,
     user_id: str,
     is_admin: bool,
     media_type: MediaType = MediaType.VIDEO
 ) -> Tuple[bool, Optional[str]]:
+
     """Checks if the user has remaining quota today."""
     if is_admin:
         return True, None

@@ -11,7 +11,7 @@ from app.database import AsyncSessionLocal
 from app.models.task import DownloadTask, TaskStatus, ServiceType, MediaType
 from app.schemas.task import TaskProgressUpdate
 from app.downloaders import get_downloader, MediaMetadata
-from app.core.quota import consume_quota, refund_quota, check_quota
+from app.core.quota import refund_quota, check_and_consume_quota
 from app.core.sse_hub import sse_hub
 from app.core.logger import logger
 
@@ -35,7 +35,7 @@ class DownloadTaskManager:
         is_admin: bool
     ) -> DownloadTask:
         """
-        Validates URL, checks & consumes quota, creates the DB record,
+        Validates URL, atomically checks & consumes quota, creates the DB record,
         and launches the background execution.
         """
         downloader = get_downloader(service_type)
@@ -44,15 +44,12 @@ class DownloadTaskManager:
             raise ValueError(err or "无效的下载链接")
 
         async with AsyncSessionLocal() as db:
-            # 1. Quota Check
-            allowed, quota_err = await check_quota(db, user_id, is_admin, media_type)
+            # 1. Atomic Quota Check & Consume
+            allowed, quota_err = await check_and_consume_quota(db, user_id, is_admin, media_type)
             if not allowed:
                 raise PermissionError(quota_err or "超过今日下载额度限制")
 
-            # 2. Consume Quota upfront
-            await consume_quota(db, user_id, is_admin, media_type)
-
-            # 3. Create Task Record in DB
+            # 2. Create Task Record in DB
             now = datetime.now(timezone.utc)
             task_record = DownloadTask(
                 id=task_id,
@@ -70,7 +67,7 @@ class DownloadTaskManager:
 
         logger.info(f"[TaskManager] 新任务提交成功: ID={task_id}, 用户={user_id}, 服务={service_type.value}, URL={sanitized_url}")
 
-        # 4. Launch async worker
+        # 3. Launch async worker
         cancel_event = asyncio.Event()
         self._cancel_events[task_id] = cancel_event
         bg_task = asyncio.create_task(
@@ -79,6 +76,7 @@ class DownloadTaskManager:
         self._running_tasks[task_id] = bg_task
 
         return task_record
+
 
     async def cancel_task(self, task_id: str, user_id: str, is_admin: bool) -> bool:
         """Cancels an in-flight or queued task and refunds quota."""
@@ -184,17 +182,19 @@ class DownloadTaskManager:
                 ):
                     now_ts = time.time()
                     last_ts = self._last_progress_time.get(task_id, 0)
-                    # Throttle progress broadcasts (every 0.3s or if completed/high change)
-                    if (now_ts - last_ts >= 0.3) or percent >= 99.0 or percent <= 1.0:
+                    # Throttle progress broadcasts (every 0.25s or when near completion/beginning)
+                    if (now_ts - last_ts >= 0.25) or percent >= 99.0 or percent <= 1.0:
                         self._last_progress_time[task_id] = now_ts
-                        await self._update_task_db_and_broadcast(
-                            task_id, user_id,
-                            status=TaskStatus.DOWNLOADING.value,
-                            progress_percent=percent,
-                            download_speed=speed,
+                        await self._broadcast_progress_only(
+                            task_id=task_id,
+                            user_id=user_id,
+                            percent=percent,
+                            speed=speed,
                             eta=eta,
                             downloaded_bytes=downloaded_bytes,
-                            total_bytes=total_bytes
+                            total_bytes=total_bytes,
+                            service_type=service_type.value,
+                            media_type=media_type.value
                         )
 
                 # Execute Download
@@ -212,9 +212,12 @@ class DownloadTaskManager:
                 now = datetime.now(timezone.utc)
                 expires_at = now + timedelta(hours=settings.FILE_RETENTION_HOURS)
 
+                # If title was generic, update with meaningful filename
+                clean_final_title = final_filename.rsplit(".", 1)[0]
                 await self._update_task_db_and_broadcast(
                     task_id, user_id,
                     status=TaskStatus.COMPLETED.value,
+                    title=clean_final_title if clean_final_title else None,
                     progress_percent=100.0,
                     download_speed=None,
                     eta=None,
@@ -265,6 +268,32 @@ class DownloadTaskManager:
             except Exception:
                 pass
 
+    async def _broadcast_progress_only(
+        self,
+        task_id: str,
+        user_id: str,
+        percent: float,
+        speed: Optional[str],
+        eta: Optional[str],
+        downloaded_bytes: Optional[int],
+        total_bytes: Optional[int],
+        service_type: str,
+        media_type: str
+    ):
+        """Broadcasts high-frequency in-flight progress directly through SSE without disk I/O."""
+        update_payload = TaskProgressUpdate(
+            task_id=task_id,
+            status=TaskStatus.DOWNLOADING.value,
+            progress_percent=percent,
+            service_type=service_type,
+            media_type=media_type,
+            download_speed=speed,
+            eta=eta,
+            downloaded_bytes=downloaded_bytes,
+            total_bytes=total_bytes
+        )
+        await sse_hub.broadcast_task_update(user_id, update_payload)
+
     async def _update_task_db_and_broadcast(self, task_id: str, user_id: str, **kwargs):
         """Updates DB task row and broadcasts an SSE event."""
         async with AsyncSessionLocal() as db:
@@ -281,11 +310,13 @@ class DownloadTaskManager:
             await db.commit()
             await db.refresh(task)
 
-            # Broadcast SSE
+            # Broadcast SSE with full metadata
             update_payload = TaskProgressUpdate(
                 task_id=task.id,
                 status=task.status,
                 progress_percent=task.progress_percent,
+                service_type=task.service_type,
+                media_type=task.media_type,
                 download_speed=task.download_speed,
                 eta=task.eta,
                 downloaded_bytes=task.downloaded_bytes,
@@ -301,3 +332,4 @@ class DownloadTaskManager:
             await sse_hub.broadcast_task_update(user_id, update_payload)
 
 task_manager = DownloadTaskManager()
+

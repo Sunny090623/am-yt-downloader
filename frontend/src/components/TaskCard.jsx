@@ -8,6 +8,8 @@ import {
   RotateCw, 
   Trash2, 
   Film, 
+  Music,
+  Archive,
   ExternalLink,
   Zap,
   Timer
@@ -105,7 +107,7 @@ export default function TaskCard({ task, onRetry, onDelete, onRequestDelete, add
           <img src={task.thumbnail_url} alt={task.title || 'Thumbnail'} className="task-thumbnail" />
         ) : (
           <div className="task-thumbnail">
-            <Film size={28} />
+            {task.service_type === 'apple_music' ? <Music size={28} color="var(--apple-pink, #fa233b)" /> : <Film size={28} />}
           </div>
         )}
 
@@ -177,11 +179,21 @@ export default function TaskCard({ task, onRetry, onDelete, onRequestDelete, add
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <a
                   href={task.download_url}
-                  download={task.file_name || 'video'}
+                  download={task.file_name || (task.service_type === 'apple_music' ? (task.media_type === 'album' ? 'album.zip' : 'song.m4a') : 'video.mkv')}
                   className="btn-download-file"
                 >
-                  <Download size={16} />
-                  <span>保存到本地 ({formatBytes(task.file_size)})</span>
+                  {task.media_type === 'album' || (task.file_name && task.file_name.endsWith('.zip')) ? (
+                    <Archive size={16} />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  <span>
+                    {task.media_type === 'album' || (task.file_name && task.file_name.endsWith('.zip'))
+                      ? `下载整张专辑 (.ZIP) (${formatBytes(task.file_size)})`
+                      : (task.service_type === 'apple_music'
+                        ? `保存歌曲 (.M4A) (${formatBytes(task.file_size)})`
+                        : `保存到本地 (${formatBytes(task.file_size)})`)}
+                  </span>
                 </a>
 
                 <button

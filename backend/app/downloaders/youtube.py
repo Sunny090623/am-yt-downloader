@@ -16,6 +16,8 @@ FALLBACK_PERCENT_REGEX = re.compile(r"\[download\]\s+([\d\.]+)%")
 FALLBACK_SPEED_REGEX = re.compile(r"at\s+([\d\.]+\s*[kKMGT]?i?B/s)")
 FALLBACK_ETA_REGEX = re.compile(r"ETA\s+([\d:]+)")
 
+import sys
+
 def resolve_binary(binary_name_or_path: str) -> str:
     """
     Resolves binary path across Windows (.exe/.cmd) and Linux.
@@ -24,7 +26,31 @@ def resolve_binary(binary_name_or_path: str) -> str:
     found = shutil.which(binary_name_or_path)
     if found:
         return found
+    
+    # Check Python environment directory (Conda / venv / Scripts / bin)
+    py_dir = Path(sys.executable).parent
+    candidates = [
+        py_dir / "Scripts" / f"{binary_name_or_path}.exe",
+        py_dir / "Scripts" / binary_name_or_path,
+        py_dir / "bin" / binary_name_or_path,
+        py_dir / f"{binary_name_or_path}.exe",
+        py_dir / binary_name_or_path,
+    ]
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return str(c)
     return binary_name_or_path
+
+def get_ytdlp_cmd_base() -> list:
+    """Resolves executable path or fallback python module invocation."""
+    resolved = resolve_binary(settings.YTDLP_PATH)
+    if shutil.which(resolved) or Path(resolved).exists():
+        return [resolved]
+    try:
+        import yt_dlp
+        return [sys.executable, "-m", "yt_dlp"]
+    except ImportError:
+        return [resolved]
 
 class YouTubeDownloader(BaseDownloader):
     def validate_url(self, url: str) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -36,16 +62,14 @@ class YouTubeDownloader(BaseDownloader):
         if not is_valid or not sanitized_url:
             raise ValueError(err or "无效的 YouTube URL")
 
-        executable = resolve_binary(settings.YTDLP_PATH)
-        cmd = [
-            executable,
+        cmd = get_ytdlp_cmd_base() + [
             "--dump-single-json",
             "--no-warnings",
             "--no-playlist",
             sanitized_url
         ]
 
-        logger.info(f"[YouTubeDownloader] 正在解析元数据: {sanitized_url} (使用引擎: {executable})")
+        logger.info(f"[YouTubeDownloader] 正在解析元数据: {sanitized_url} (使用引擎: {' '.join(cmd[:2])})")
 
         stdout_bytes, stderr_bytes, returncode = await self._run_exec_or_thread(cmd)
 
@@ -94,11 +118,9 @@ class YouTubeDownloader(BaseDownloader):
         output_dir.mkdir(parents=True, exist_ok=True)
         temp_dir.mkdir(parents=True, exist_ok=True)
 
-        executable = resolve_binary(settings.YTDLP_PATH)
         ffmpeg_exec = resolve_binary(settings.FFMPEG_PATH)
 
-        cmd = [
-            executable,
+        cmd = get_ytdlp_cmd_base() + [
             "--newline",
             "--no-warnings",
             "--no-playlist",
@@ -114,6 +136,7 @@ class YouTubeDownloader(BaseDownloader):
             "-o", "%(title).200B.%(ext)s",
             sanitized_url
         ]
+
 
         logger.info(f"[Task {task_id}] 开始下载命令: {' '.join(cmd[:6])}... URL: {sanitized_url}")
 
@@ -270,9 +293,9 @@ class YouTubeDownloader(BaseDownloader):
             sync_proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                bufsize=1
+                stderr=subprocess.PIPE
             )
+
 
             def stdout_reader_thread():
                 for raw_line in iter(sync_proc.stdout.readline, b''):

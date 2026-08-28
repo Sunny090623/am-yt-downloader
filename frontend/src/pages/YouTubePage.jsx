@@ -88,7 +88,7 @@ export default function YouTubePage({
 
   const executeClearAll = async () => {
     try {
-      const res = await clearFinishedTasks();
+      const res = await clearFinishedTasks('youtube');
       addToast(res.message || '已清理所有历史任务及文件', 'success');
       await refreshTasks();
     } catch (err) {
@@ -114,8 +114,9 @@ export default function YouTubePage({
     setConfirmModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  const activeTasks = tasks.filter(t => ['queued', 'fetching_info', 'downloading', 'processing'].includes(t.status));
-  const finishedTasks = tasks.filter(t => !['queued', 'fetching_info', 'downloading', 'processing'].includes(t.status));
+  const youtubeTasks = tasks.filter(t => !t.service_type || t.service_type === 'youtube');
+  const activeTasks = youtubeTasks.filter(t => ['queued', 'fetching_info', 'downloading', 'processing'].includes(t.status));
+  const finishedTasks = youtubeTasks.filter(t => !['queued', 'fetching_info', 'downloading', 'processing'].includes(t.status));
 
   return (
     <div>
@@ -183,7 +184,7 @@ export default function YouTubePage({
         <div className="section-title-bar">
           <div className="section-title">
             <ListOrdered size={18} />
-            <span>下载任务列表 ({tasks.length})</span>
+            <span>下载任务列表 ({youtubeTasks.length})</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -210,7 +211,7 @@ export default function YouTubePage({
           </div>
         </div>
 
-        {tasks.length === 0 ? (
+        {youtubeTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3.5rem 1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-subtle)' }}>
             <Sparkles size={36} color="var(--text-muted)" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.6 }} />
             <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>暂无下载任务</div>
@@ -219,6 +220,7 @@ export default function YouTubePage({
             </div>
           </div>
         ) : (
+
           <>
             {/* Active Running Tasks */}
             {activeTasks.map((task) => (

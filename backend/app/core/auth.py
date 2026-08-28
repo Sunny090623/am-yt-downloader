@@ -40,6 +40,39 @@ def verify_and_extract_device_id(cookie_value: Optional[str]) -> Optional[str]:
         pass
     return None
 
+def sign_admin_session(session_id: str) -> str:
+    """Signs an admin session_id with HMAC-SHA256."""
+    sig = hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        session_id.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+    return f"{session_id}.{sig}"
+
+def verify_and_extract_admin_session(cookie_value: Optional[str]) -> Optional[str]:
+    """Verifies the HMAC signature and extracts the original session_id."""
+    if not cookie_value:
+        return None
+    if "." in cookie_value:
+        try:
+            session_id, sig = cookie_value.rsplit(".", 1)
+            expected_sig = hmac.new(
+                settings.SECRET_KEY.encode("utf-8"),
+                session_id.encode("utf-8"),
+                hashlib.sha256
+            ).hexdigest()
+            if hmac.compare_digest(sig, expected_sig):
+                return session_id
+        except Exception:
+            pass
+        return None
+    # Backward compatibility for plain UUID hex during migration
+    if len(cookie_value) == 32 and all(c in "0123456789abcdefABCDEF" for c in cookie_value):
+        return cookie_value
+    return None
+
+
+
 def verify_admin_password(plain_password: str) -> bool:
     """Verifies plain password against configured admin password hash."""
     expected_hash = settings.get_admin_password_hash()
@@ -126,7 +159,8 @@ async def get_current_user_context(
     1. Checks for valid Admin session.
     2. Fallbacks to signed anonymous device cookie (or creates one).
     """
-    admin_session_id = request.cookies.get(ADMIN_COOKIE_NAME)
+    raw_admin_cookie = request.cookies.get(ADMIN_COOKIE_NAME)
+    admin_session_id = verify_and_extract_admin_session(raw_admin_cookie)
     if admin_session_id:
         if await is_valid_admin_session(db, admin_session_id):
             return UserContext(user_id="admin", is_admin=True)

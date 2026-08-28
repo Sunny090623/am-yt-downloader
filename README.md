@@ -147,6 +147,7 @@ Apple Music 下载依赖于局域网内运行的 Apple Music Wrapper 解密服�
 
 * [Wrapper](https://github.com/WorldObservationLog/wrapper)
 * [apple-music-downloader](https://github.com/zhaarey/apple-music-downloader)
+* [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 ---
 

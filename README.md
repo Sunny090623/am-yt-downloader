@@ -2,7 +2,6 @@
 
 个人专属媒体下载与管理服务。针对 **Windows** 本地开发测试与 **Synology NAS (群晖)** 生产部署进行深度适配与优化。
 
-
 ## ⚠️免责声明 / Disclaimer
 
 本工具仅供学习交流与个人合法订阅内容的本地备份归档使用。
@@ -10,12 +9,11 @@
 
 ---
 
-
-
 ## 📌 开发计划 (Roadmap)
 
 - [X]  **适配 Apple Music 下载**：接入 Apple Music 下载引擎，支持单曲 (Single) 与专辑 (Album) 独立额度管理、无损音质解析及完整元数据标签写入。
 - [X]  **Docker 镜像构建性能优化**：引入全量 `.dockerignore` 上下文拦截、本地 Go 源码编译加速、Pip pre-built wheels 预拉取及多阶段层级复用，将首次构建耗时从 30 分钟大幅降低至 1~2 分钟。
+- [ ]  修复`docker compose up -d --build`的问题。
 - [ ]  适配`apple-music-downloader`中所有的可选参数。
 
 ---
@@ -36,6 +34,7 @@
 ## ⚠️已知问题
 
 * 单曲下载无法正确写入歌词，但貌似为Apple Muic Downloader的问题，等待更新中。
+* `docker compose up -d --build`无法正确构建。
 
 ---
 
@@ -163,8 +162,6 @@ Apple Music 下载依赖于局域网内运行的 Apple Music Wrapper 解密服�
 * [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 ---
-
-
 
 ## 📁 目录结构
 

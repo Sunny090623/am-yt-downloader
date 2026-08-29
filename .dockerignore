@@ -35,11 +35,13 @@ backend/.pytest_cache/
 *.pdf
 gpac-download.pdf
 wrapper/
+gpac/
 .tempmediaStorage/
 .user_uploaded/
 scratch/
 possible-solutions.md
 ssh-history*.txt
+
 
 
 # OS / Editor Files

@@ -1,8 +1,0 @@
-TARGET gm_ismacryp.dll
-//common config of all modules
-#include ".\module_base.mmp"
-
-//source
-SOURCEPATH ..\..\modules\ismacryp
-SOURCE isma_ea.c
-

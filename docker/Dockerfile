@@ -32,7 +32,7 @@ COPY apple-music/ ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/bin/apple-music-downloader .
 
 # ------------------------------------------------------------------------------
-# Stage 3: Minimal GPAC (MP4Box) Static Compilation
+# Stage 3: Minimal GPAC (MP4Box) Static Compilation from Latest Upstream
 # ------------------------------------------------------------------------------
 FROM python:3.11-slim AS gpac-builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,16 +44,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
-# Copy local gpac source if provided, or clone minimal depth 1 if missing
-COPY gpac/ /tmp/gpac/
-RUN if [ ! -f /tmp/gpac/configure ]; then \
-        git clone --depth 1 https://github.com/gpac/gpac.git /tmp/gpac; \
-    fi && \
+RUN git clone --depth 1 https://github.com/gpac/gpac.git /tmp/gpac && \
     cd /tmp/gpac && \
     ./configure --static-bin --use-zlib=no --strip --disable-x11 --disable-ssl && \
     make -j$(nproc) && \
     make install && \
     (cp bin/gcc/MP4Box /usr/local/bin/MP4Box || cp /usr/local/bin/MP4Box /usr/local/bin/MP4Box || true)
+
 
 # ------------------------------------------------------------------------------
 # Stage 4: Production Runtime (Python 3.11 Slim + FFmpeg + MP4Box + Node.js)

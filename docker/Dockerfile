@@ -21,7 +21,7 @@ RUN npm run build
 # ------------------------------------------------------------------------------
 # Stage 2: Fast Local Go Binary Compilation
 # ------------------------------------------------------------------------------
-FROM golang:1.22-alpine AS go-builder
+FROM golang:1.23-alpine AS go-builder
 WORKDIR /app/apple-music-src
 
 ARG GOPROXY="https://proxy.golang.org,direct"
@@ -46,10 +46,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /tmp
 RUN git clone --depth 1 https://github.com/gpac/gpac.git /tmp/gpac && \
     cd /tmp/gpac && \
-    ./configure --static-bin --use-zlib=no --strip --disable-x11 --disable-ssl && \
+    ./configure --static-bin --use-zlib=no --disable-x11 --disable-ssl && \
     make -j$(nproc) && \
-    make install && \
-    (cp bin/gcc/MP4Box /usr/local/bin/MP4Box || cp /usr/local/bin/MP4Box /usr/local/bin/MP4Box || true)
+    strip bin/gcc/MP4Box && \
+    cp bin/gcc/MP4Box /usr/local/bin/MP4Box
+
 
 
 # ------------------------------------------------------------------------------

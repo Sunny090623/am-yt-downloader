@@ -88,6 +88,7 @@ artifact.md
 gpac-download.pdf
 possible-solutions.md
 ssh-history*.txt
+ssh-docker-build-history.txt
 
 # External reference directory
 wrapper/

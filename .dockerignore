@@ -38,6 +38,9 @@ wrapper/
 .tempmediaStorage/
 .user_uploaded/
 scratch/
+possible-solutions.md
+ssh-history*.txt
+
 
 # OS / Editor Files
 .DS_Store

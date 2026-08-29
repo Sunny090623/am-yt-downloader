@@ -19,8 +19,12 @@ All notable changes, bug fixes, and feature additions for this project are docum
 - **S5 & S6 (URL Sanitization Tightening)**: Enhanced URL path sanitization in `validate_and_sanitize_apple_music_url` to strictly reject directory traversal attempts (`..`), and sanitized fallback query arguments.
 
 ### Fixed
+- **Docker 构建缺失 Debian 12 (bookworm) gpac 软件包修复 (方案一)**: 
+  - 针对 Debian 12 官方源彻底移除 `gpac` 的问题，在 [docker/Dockerfile](file:///c:/Users/zihan/Desktop/My-Projects/am-yt-downloader/docker/Dockerfile) 中新增了 `gpac-builder` 独立多阶段构建阶段。
+  - 使用 `--static-bin --use-zlib=no --strip --disable-x11 --disable-ssl` 静态编译最小化 `MP4Box` 二进制，彻底消除宿主机及容器内 `libGL.so.1` 等图形库缺失报错，并将编译产物直接注入运行镜像。
 - **Apple Music 下载器缺失 `import time` 修复**: 修复了在 `apple_music.py` 中记录任务起始时间戳 (`time.time()`) 时抛出 `NameError: name 'time' is not defined` 的问题，补充了标准库依赖导入。
 - **B1 (Atomic Quota Consumption & TOCTOU Race Fix)**: Implemented atomic `check_and_consume_quota` executing within a single database transaction in `quota.py` and `task_manager.py`, eliminating Time-of-Check to Time-of-Use race conditions under concurrent download submissions.
+
 
 - **B2 (Apple Music New File Detection)**: Fixed tautology condition (`f.stat().st_mtime > 0`) in `apple_music.py`. Replaced with pre-run snapshot time-mapping (`pre_mtimes`) and strict mtime delta comparison (`f.stat().st_mtime > pre_mtimes.get(f, 0)`), guaranteeing accurate audio output detection.
 - **B3 (SSE Push Metadata Classification)**: Added `service_type` and `media_type` to `TaskProgressUpdate` schema and SSE broadcasts, fixing incorrect fallback categorization of newly pushed tasks in `App.jsx`.

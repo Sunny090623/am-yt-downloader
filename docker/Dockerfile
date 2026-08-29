@@ -32,7 +32,31 @@ COPY apple-music/ ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/bin/apple-music-downloader .
 
 # ------------------------------------------------------------------------------
-# Stage 3: Production Runtime (Python 3.11 Slim + FFmpeg + GPAC/MP4Box + Node.js)
+# Stage 3: Minimal GPAC (MP4Box) Static Compilation
+# ------------------------------------------------------------------------------
+FROM python:3.11-slim AS gpac-builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    zlib1g-dev \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp
+# Copy local gpac source if provided, or clone minimal depth 1 if missing
+COPY gpac/ /tmp/gpac/
+RUN if [ ! -f /tmp/gpac/configure ]; then \
+        git clone --depth 1 https://github.com/gpac/gpac.git /tmp/gpac; \
+    fi && \
+    cd /tmp/gpac && \
+    ./configure --static-bin --use-zlib=no --strip --disable-x11 --disable-ssl && \
+    make -j$(nproc) && \
+    make install && \
+    (cp bin/gcc/MP4Box /usr/local/bin/MP4Box || cp /usr/local/bin/MP4Box /usr/local/bin/MP4Box || true)
+
+# ------------------------------------------------------------------------------
+# Stage 4: Production Runtime (Python 3.11 Slim + FFmpeg + MP4Box + Node.js)
 # ------------------------------------------------------------------------------
 FROM python:3.11-slim
 
@@ -42,10 +66,9 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-# 1. Install system utilities and multimedia engines in a single layer
+# 1. Install system utilities and multimedia engines in a single layer (without removed Debian gpac)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    gpac \
     nodejs \
     ca-certificates \
     curl \
@@ -68,11 +91,14 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY --from=go-builder /app/bin/apple-music-downloader /usr/local/bin/apple-music-downloader
 RUN chmod +x /usr/local/bin/apple-music-downloader
 
-# 6. Initialize runtime directories and configuration
+# 6. Copy pre-compiled MP4Box binary from Stage 3
+COPY --from=gpac-builder /usr/local/bin/MP4Box /usr/local/bin/MP4Box
+RUN chmod +x /usr/local/bin/MP4Box
+
+# 7. Initialize runtime directories and configuration
 RUN mkdir -p /app/apple-music /app/backend/data/logs /app/backend/data/storage/temp
 COPY apple-music/config.yaml* /app/apple-music/
 RUN if [ ! -f /app/apple-music/config.yaml ] && [ -f /app/apple-music/config.yaml.example ]; then cp /app/apple-music/config.yaml.example /app/apple-music/config.yaml; fi
-
 
 WORKDIR /app/backend
 

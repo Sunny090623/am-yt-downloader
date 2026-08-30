@@ -9,8 +9,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <title>MediaHub - 个人媒体下载中心</title>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('amyt_theme');
+          var isLight = saved === 'light' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+          if (isLight) {
+            document.documentElement.classList.add('light-theme');
+            document.addEventListener('DOMContentLoaded', function() {
+              if (document.body) document.body.className = 'light-theme';
+            });
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body class="dark-theme">
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

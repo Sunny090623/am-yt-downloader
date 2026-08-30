@@ -104,12 +104,25 @@ export default function TaskCard({ task, onRetry, onDelete, onRequestDelete, add
     <div className={`task-card ${task.status}`}>
       <div className="task-header">
         {task.thumbnail_url ? (
-          <img src={task.thumbnail_url} alt={task.title || 'Thumbnail'} className="task-thumbnail" />
-        ) : (
-          <div className="task-thumbnail">
-            {task.service_type === 'apple_music' ? <Music size={28} color="var(--apple-pink, #fa233b)" /> : <Film size={28} />}
-          </div>
-        )}
+          <img 
+            src={task.thumbnail_url} 
+            alt={task.title || 'Thumbnail'} 
+            className={`task-thumbnail ${task.service_type === 'apple_music' ? 'album-cover' : ''}`}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextSibling) {
+                e.currentTarget.nextSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div 
+          className={`task-thumbnail ${task.service_type === 'apple_music' ? 'album-cover' : ''}`}
+          style={{ display: task.thumbnail_url ? 'none' : 'flex' }}
+        >
+          {task.service_type === 'apple_music' ? <Music size={28} color="var(--apple-pink, #fa233b)" /> : <Film size={28} />}
+        </div>
+
 
         <div className="task-info">
           <div>

@@ -230,3 +230,70 @@ async def test_api_clear_finished_tasks(app_test_client):
     async with TestSession() as db:
         assert await db.get(DownloadTask, "clear_task_1") is None
         assert await db.get(DownloadTask, "active_task_2") is not None
+
+@pytest.mark.asyncio
+async def test_api_admin_change_password(app_test_client):
+    client, TestSession, storage_dir = app_test_client
+
+    # 1. Login as Admin
+    login_resp = await client.post("/api/auth/login", json={"password": settings.ADMIN_PASSWORD})
+    assert login_resp.status_code == 200
+
+    # 2. Reject wrong current password
+    fail_resp = await client.post("/api/admin/change-password", json={
+        "current_password": "wrongpassword",
+        "new_password": "newsecretpassword123"
+    })
+    assert fail_resp.status_code == 400
+
+    # 3. Change password successfully
+    ok_resp = await client.post("/api/admin/change-password", json={
+        "current_password": settings.ADMIN_PASSWORD,
+        "new_password": "newsecretpassword123"
+    })
+    assert ok_resp.status_code == 200
+    assert ok_resp.json()["success"] is True
+
+    # 4. Verify login with new password works
+    new_login_resp = await client.post("/api/auth/login", json={"password": "newsecretpassword123"})
+    assert new_login_resp.status_code == 200
+    assert new_login_resp.json()["is_admin"] is True
+
+    # Restore default password for test isolation
+    settings.update_admin_password("admin123")
+
+@pytest.mark.asyncio
+async def test_api_delete_active_task_aborts_and_cleans(app_test_client):
+    client, TestSession, storage_dir = app_test_client
+
+    status_resp = await client.get("/api/auth/status")
+    user_id = status_resp.json()["user_id"]
+
+    # Create an active task
+    async with TestSession() as db:
+        active_t = DownloadTask(
+            id="active_del_task_999",
+            user_id=user_id,
+            service_type="youtube",
+            media_type="video",
+            url="https://www.youtube.com/watch?v=running123",
+            status=TaskStatus.DOWNLOADING.value
+        )
+        db.add(active_t)
+        await db.commit()
+
+    # Create dummy folder
+    task_dir = storage_dir / user_id / "active_del_task_999"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "partial.m4a").write_text("partial data")
+
+    # Delete active task directly
+    del_resp = await client.delete("/api/tasks/active_del_task_999")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["success"] is True
+
+    # DB record and folder should be removed
+    async with TestSession() as db:
+        assert await db.get(DownloadTask, "active_del_task_999") is None
+    assert not task_dir.exists()
+

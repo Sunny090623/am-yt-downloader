@@ -171,8 +171,13 @@ async def user_delete_task(
     if not user_ctx.is_admin and task.user_id != user_ctx.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权删除该任务")
 
-    if task.status in (TaskStatus.DOWNLOADING.value, TaskStatus.FETCHING_INFO.value, TaskStatus.PROCESSING.value):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="正在下载中的任务请先点击取消后再删除")
+    # If task is currently active (running / queued), abort and cancel it first
+    if task.status in (TaskStatus.QUEUED.value, TaskStatus.FETCHING_INFO.value, TaskStatus.DOWNLOADING.value, TaskStatus.PROCESSING.value):
+        try:
+            await task_manager.cancel_task(task_id, task.user_id, is_admin=True)
+            await asyncio.sleep(0.3)
+        except Exception as e:
+            logger.warning(f"[TasksAPI] 取消运行中任务 {task_id} 异常: {str(e)}")
 
     # Delete physical folder / files
     task_dir = settings.STORAGE_DIR / task.user_id / task.id
@@ -184,12 +189,13 @@ async def user_delete_task(
         except Exception:
             pass
 
-    # Delete task record from database (quota is strictly NOT refunded)
+    # Delete task record from database
     await db.delete(task)
     await db.commit()
 
-    logger.info(f"[TasksAPI] 用户 {user_ctx.user_id} 手动删除了任务 {task_id} 及其文件 (配额不回退)")
-    return {"success": True, "message": "任务及已下载文件已彻底删除"}
+    logger.info(f"[TasksAPI] 用户 {user_ctx.user_id} 手动删除了任务 {task_id} 及其文件并终止后台进程")
+    return {"success": True, "message": "任务及已下载文件已彻底删除并终止"}
+
 
 @router.post("/clear-finished")
 async def clear_finished_tasks(

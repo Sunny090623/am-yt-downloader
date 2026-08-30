@@ -10,9 +10,21 @@ import {
   AlertTriangle,
   Server,
   LogOut,
-  Music
+  Music,
+  Key,
+  Lock,
+  Eye,
+  EyeOff,
+  X
 } from 'lucide-react';
-import { fetchAdminStats, triggerManualCleanup, deleteAdminTask, adminLogout, fetchAdminLogs } from '../services/api';
+import { 
+  fetchAdminStats, 
+  triggerManualCleanup, 
+  deleteAdminTask, 
+  adminLogout, 
+  fetchAdminLogs,
+  changeAdminPassword
+} from '../services/api';
 
 function formatBytes(bytes) {
   if (!bytes || bytes <= 0) return '0 B';
@@ -40,6 +52,15 @@ export default function AdminPage({
   const [loading, setLoading] = useState(true);
   const [cleaning, setCleaning] = useState(false);
   const logContainerRef = useRef(null);
+
+  // Change Password State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPwdText, setShowPwdText] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError] = useState('');
 
   const loadStats = async () => {
     try {
@@ -73,7 +94,6 @@ export default function AdminPage({
     }
   }, [logs]);
 
-
   const handleCleanup = async () => {
     setCleaning(true);
     try {
@@ -85,6 +105,38 @@ export default function AdminPage({
       addToast(e.message || '清理失败', 'error');
     } finally {
       setCleaning(false);
+    }
+  };
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPwdError('');
+
+    if (!currentPassword) {
+      setPwdError('请输入当前管理员密码');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPwdError('新密码长度不能少于 6 个字符');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError('两次输入的新密码不一致');
+      return;
+    }
+
+    setPwdLoading(true);
+    try {
+      const res = await changeAdminPassword(currentPassword, newPassword);
+      addToast(res.message || '密码修改成功', 'success');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPwdError(err.message || '修改密码失败');
+    } finally {
+      setPwdLoading(false);
     }
   };
 
@@ -125,17 +177,23 @@ export default function AdminPage({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button className="btn-secondary" onClick={() => setShowPasswordModal(true)}>
+            <Key size={15} />
+            <span>修改密码</span>
+          </button>
           <button className="btn-primary" style={{ padding: '0.55rem 1rem', fontSize: '0.875rem' }} onClick={handleCleanup} disabled={cleaning}>
             <Trash2 size={15} />
             <span>{cleaning ? '正在清理...' : '执行 24h 清理'}</span>
           </button>
-          <button className="btn-cancel" style={{ padding: '0.55rem 1rem' }} onClick={handleLogout}>
+          <button className="btn-danger-outline" onClick={handleLogout}>
             <LogOut size={15} />
             <span>退出管理</span>
           </button>
         </div>
       </div>
+
+
 
       {/* Diagnostics Cards */}
       {stats && (
@@ -251,19 +309,20 @@ export default function AdminPage({
             </div>
 
             {/* Source Switcher Tabs */}
-            <div style={{ display: 'flex', background: 'var(--bg-primary)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', background: 'var(--bg-elevated)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
               <button
                 type="button"
                 onClick={() => setLogSource('app')}
                 style={{
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   borderRadius: 'var(--radius-sm)',
                   border: 'none',
                   cursor: 'pointer',
-                  background: logSource === 'app' ? 'var(--primary-color)' : 'transparent',
+                  background: logSource === 'app' ? '#ef4444' : 'transparent',
                   color: logSource === 'app' ? '#ffffff' : 'var(--text-secondary)',
+                  boxShadow: logSource === 'app' ? '0 2px 8px rgba(239, 68, 68, 0.35)' : 'none',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -273,7 +332,7 @@ export default function AdminPage({
                 type="button"
                 onClick={() => setLogSource('apple_music')}
                 style={{
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   borderRadius: 'var(--radius-sm)',
@@ -282,8 +341,9 @@ export default function AdminPage({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  background: logSource === 'apple_music' ? '#ec4899' : 'transparent',
+                  background: logSource === 'apple_music' ? 'linear-gradient(135deg, #fa233b 0%, #fb5c74 100%)' : 'transparent',
                   color: logSource === 'apple_music' ? '#ffffff' : 'var(--text-secondary)',
+                  boxShadow: logSource === 'apple_music' ? '0 2px 8px rgba(250, 35, 59, 0.35)' : 'none',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -292,6 +352,7 @@ export default function AdminPage({
               </button>
             </div>
           </div>
+
 
           <button className="icon-btn" style={{ width: '30px', height: '30px' }} onClick={() => loadLogs(logSource)} title="刷新日志">
             <RefreshCw size={14} />
@@ -317,9 +378,162 @@ export default function AdminPage({
         >
           {logs || '正在获取日志...'}
         </pre>
-
-
       </div>
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div 
+          className="modal-overlay" 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPasswordModal(false);
+          }}
+        >
+          <div 
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-lg)',
+              width: '100%',
+              maxWidth: '440px',
+              padding: '1.75rem',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              position: 'relative'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ background: 'rgba(99, 102, 241, 0.15)', width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                  <Key size={18} />
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>修改管理员密码</h3>
+              </div>
+              <button 
+                type="button" 
+                className="icon-btn" 
+                onClick={() => setShowPasswordModal(false)}
+                style={{ width: '28px', height: '28px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {pwdError && (
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.12)', 
+                border: '1px solid rgba(239, 68, 68, 0.3)', 
+                color: '#ef4444', 
+                padding: '0.6rem 0.8rem', 
+                borderRadius: 'var(--radius-sm)', 
+                fontSize: '0.85rem',
+                marginBottom: '1rem'
+              }}>
+                {pwdError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                  当前密码
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPwdText ? 'text' : 'password'}
+                    className="input-field"
+                    style={{ width: '100%', paddingRight: '2.5rem' }}
+                    placeholder="输入当前管理员密码"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                  新密码 (至少 6 位)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPwdText ? 'text' : 'password'}
+                    className="input-field"
+                    style={{ width: '100%', paddingRight: '2.5rem' }}
+                    placeholder="输入新密码"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwdText(!showPwdText)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPwdText ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                  确认新密码
+                </label>
+                <input
+                  type={showPwdText ? 'text' : 'password'}
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="再次输入新密码"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setShowPasswordModal(false)}
+                  disabled={pwdLoading}
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={pwdLoading}
+                >
+                  {pwdLoading ? '正在保存...' : '保存新密码'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

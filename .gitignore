@@ -38,6 +38,10 @@ data/logs/*
 !data/logs/apple_music/
 data/logs/apple_music/*
 !data/logs/apple_music/.gitkeep
+data/.admin_password
+backend/data/.admin_password
+**/.admin_password
+**/.token_cache
 
 storage/*
 !storage/.gitkeep
@@ -54,6 +58,7 @@ backend/data/logs/apple_music/*
 *.db
 *.sqlite
 *.sqlite3
+
 
 
 # Downloaded Media Files & Temporary Fragments

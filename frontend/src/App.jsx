@@ -11,22 +11,39 @@ import { fetchAuthStatus, fetchTasks, subscribeToTaskEvents } from './services/a
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'youtube' | 'apple_music' | 'admin'
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('amyt_theme');
+      if (saved !== null) {
+        return saved === 'dark';
+      }
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return false;
+      }
+    } catch (e) {}
+    return true;
+  });
   const [authStatus, setAuthStatus] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-
-  // Theme Sync
+  // Theme Sync & Persistence
   useEffect(() => {
     if (isDark) {
       document.body.className = 'dark-theme';
+      try {
+        localStorage.setItem('amyt_theme', 'dark');
+      } catch (e) {}
     } else {
       document.body.className = 'light-theme';
+      try {
+        localStorage.setItem('amyt_theme', 'light');
+      } catch (e) {}
     }
   }, [isDark]);
+
 
   const addToast = (message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -71,17 +88,25 @@ export default function App() {
         const index = prevTasks.findIndex((t) => t.id === update.task_id);
         if (index >= 0) {
           const updated = [...prevTasks];
+          const curr = updated[index];
           updated[index] = {
-            ...updated[index],
+            ...curr,
             ...update,
-            status: update.status,
-            progress_percent: update.progress_percent,
-            download_speed: update.download_speed,
-            eta: update.eta,
-            download_url: update.status === 'completed' ? `/api/downloads/${update.task_id}/file` : updated[index].download_url
+            title: update.title || curr.title,
+            thumbnail_url: update.thumbnail_url || curr.thumbnail_url,
+            uploader: update.uploader || curr.uploader,
+            duration: update.duration || curr.duration,
+            status: update.status || curr.status,
+            progress_percent: update.progress_percent !== undefined ? update.progress_percent : curr.progress_percent,
+            download_speed: update.download_speed || curr.download_speed,
+            eta: update.eta || curr.eta,
+            file_name: update.file_name || curr.file_name,
+            file_size: update.file_size || curr.file_size,
+            download_url: update.status === 'completed' ? `/api/downloads/${update.task_id}/file` : curr.download_url
           };
           return updated;
-        } else {
+        }
+ else {
           // New task created elsewhere or pushed
           return [
             {
@@ -89,14 +114,15 @@ export default function App() {
               user_id: authStatus?.user_id || 'me',
               service_type: update.service_type || 'youtube',
               media_type: update.media_type || (update.service_type === 'apple_music' ? 'single' : 'video'),
-              url: update.title || (update.service_type === 'apple_music' ? 'Apple Music Media' : 'YouTube Media'),
-              title: update.title,
+              url: update.title || (update.service_type === 'apple_music' ? 'Apple Music Audio' : 'Audio'),
+              title: update.title || (update.service_type === 'apple_music' ? 'Apple Music Audio' : 'Audio'),
               thumbnail_url: update.thumbnail_url,
               status: update.status,
               progress_percent: update.progress_percent,
               created_at: new Date().toISOString(),
               download_url: update.status === 'completed' ? `/api/downloads/${update.task_id}/file` : null
             },
+
             ...prevTasks
           ];
 

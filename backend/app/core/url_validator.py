@@ -171,18 +171,19 @@ def validate_and_sanitize_apple_music_url(raw_url: str) -> Tuple[bool, Optional[
     path = parsed.path
     query_params = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
     
+    unquoted_path = urllib.parse.unquote(path)
+    if ".." in unquoted_path:
+        return False, None, None, "检测到非法的路径遍历字符"
+
+    # Safely quote path preserving URL standard characters and percent-encoding Unicode
+    clean_path = urllib.parse.quote(unquoted_path, safe="/-._~")
+
     # Check if song URL: /song/ or /album/... with ?i=
-    if "/song/" in path:
-        clean_path = re.sub(r"[^a-zA-Z0-9_\-\./]", "", path)
-        if ".." in clean_path:
-            return False, None, None, "检测到非法的路径遍历字符"
+    if "/song/" in clean_path:
         sanitized = f"https://music.apple.com{clean_path}"
         return True, sanitized, "song", None
         
-    if "/album/" in path:
-        clean_path = re.sub(r"[^a-zA-Z0-9_\-\./]", "", path)
-        if ".." in clean_path:
-            return False, None, None, "检测到非法的路径遍历字符"
+    if "/album/" in clean_path:
         if "i" in query_params and query_params["i"] and query_params["i"][0]:
             clean_i = sanitize_id(query_params["i"][0])
             if clean_i:
@@ -193,4 +194,5 @@ def validate_and_sanitize_apple_music_url(raw_url: str) -> Tuple[bool, Optional[
         return True, sanitized, "album", None
         
     return False, None, None, "无法识别的 Apple Music 链接类型，仅支持单曲 (Song) 或专辑 (Album)"
+
 

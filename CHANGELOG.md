@@ -2,7 +2,26 @@
 
 All notable changes, bug fixes, and feature additions for this project are documented in this file.
 
+## [v0.2.2] - 2026-08-30
+
+### Added
+- **子进程进程树深度清理机制 (`kill_proc_tree`)**:
+  - 在 `youtube.py` 与 `apple_music.py` 中引入跨平台进程树强制终止函数（Windows 使用 `taskkill /F /T`，POSIX 使用 `os.killpg(SIGKILL)`），任务取消或异常时彻底销毁所有派生子进程（`ffmpeg`、`MP4Box`），从根源杜绝孤儿进程与端口占用。
+- **Developer Token 内存 TTL 缓存优化**:
+  - 在 `token_refresher.py` 中引入 5 分钟内存 TTL 缓存与并发安全锁，避免高频请求重复进行 Base64 解码与磁盘 Regex 扫描，提升 API 响应吞吐。
+- **深色/浅色主题偏好持久化记录**:
+  - 在前端引入基于 `localStorage` (`amyt_theme`) 的主题偏好同步与系统偏好自动检测，刷新或重启浏览器后始终保留用户选择的主题模式，并在 `index.html` 加入预挂载脚本杜绝首屏白闪（FOUC）。
+- **工程规范与安全配置文件补全**:
+
+  - 在 `.gitignore` 中显式补全 `.admin_password`、`.token_cache`、测试覆盖率与编译产物过滤规则，杜绝敏感凭据误提交风险。
+  - 全面重构并升级了 `README.md`，更新 Roadmap、核心特性架构、环境变量规范与完整项目目录树。
+
+### Fixed
+- **Python 3.14+ 事件循环策略 DeprecationWarning 修复**:
+  - 优化 `WindowsProactorEventLoopPolicy` 设置条件，避免在已默认启用 Proactor 的高版本 Python 下抛出弃用警告。
+
 ## [v0.2.1] - 2026-08-28
+
 
 ### Added
 - **Apple Music 独立日志目录与全量实时日志落盘 (`data/logs/apple_music/`)**:
@@ -23,8 +42,56 @@ All notable changes, bug fixes, and feature additions for this project are docum
 - **S4 (Admin Login Brute-force Protection)**: Added IP-based sliding window rate limiter to `/api/auth/login`, restricting failed attempts to 5 per minute and returning HTTP 429 to mitigate password brute-force attacks.
 - **S5 & S6 (URL Sanitization Tightening)**: Enhanced URL path sanitization in `validate_and_sanitize_apple_music_url` to strictly reject directory traversal attempts (`..`), and sanitized fallback query arguments.
 
+### Added
+- **管理员控制台新增修改密码功能**:
+  - 管理后台新增「修改密码」模态框与 `POST /api/admin/change-password` 接口，支持旧密码校验、新密码长度检查与显隐切换。
+  - 修改后的密码哈希自动持久化存入 `data/.admin_password`，确保容器重启或升级后新密码依然有效。
+
 ### Fixed
+- **浅色与深色模式下日志选项卡及交互按钮对比度与悬浮样式全面优化**:
+  - 修复了浅色模式下「系统主日志」由于未定义 CSS 变量导致文字与背景同为白色不可见的问题；为两个日志源定制了鲜明高亮的红色/粉色 Pill 徽章与发光阴影。
+  - 重构了 `.btn-secondary` 与 `.btn-danger-outline`，修复「修改密码」悬浮时文字发白不可读以及「退出管理」按钮对比度过低发灰的问题，浅色与深色主题无缝自适应。
+- **Apple Music 重复下载异常修复（解决 `Track already exists locally` 导致误报未生成音频文件的 Bug）**:
+
+  - 修复了此前重新下载同一歌曲时，Go 底层输出 `Track already exists locally.` 跳过下载，导致 Python 时间戳扫描未能识别到已有音频产物而抛出异常的问题。
+  - 现已重构扫描逻辑：若新写入产物为空，自动兜底扫描并提取暂存目录中的全部有效音频产物，正常移入任务存储并清理暂存区。
+- **任务卡片专辑封面实时持久化展示修复**:
+  - 修复了 SSE 高频推送进度时，未携带缩略图导致前端状态合并意外将解析好的 `thumbnail_url` 覆盖为 `null` 的 Bug。
+  - 为 Apple Music 专属定制了高品质方形 `64x64` 专辑封面样式与优雅的加载失败回退。
+- **管理后台修改密码弹窗与按钮 UI 风格统一（消除白底突兀感）**:
+  - 修复了 `.btn-secondary` 与 `.input-field` 缺失的全局样式，修改密码弹窗与操作按钮完全统一为暗黑毛玻璃极简美学风格。
+  - 移除了前台顶部的「⚡ 管理员免限权：无限下载」多余提示。
+- **任务删除逻辑加固（删除运行中任务立即自动终止后台进程）**:
+
+  - 修复了此前在任务列表或后台记录直接删除处于 `downloading` / `fetching_info` / `queued` 的任务时未自动停止后台下载的问题。
+  - 现在删除任务时会自动触发 `cancel_task` 中断子进程并回收配额，再彻底移除数据库记录与临时文件。
+- **默认回退标题由 `YouTube Media` 优化为 `Audio`**:
+  - 修复了下载中或解析元数据失败时任务卡片标题默认显示为 `YouTube Media` 的问题，现已统一规范为 `Audio`。
+- **Apple Music 专辑 ZIP 语义化命名与全要素归档升级**:
+
+  - 升级了 `apple_music.py` 中的专辑打包逻辑，压缩包采用 `【歌手】专辑名.zip` 语义化安全命名，替代原本的 UUID 任务 ID。
+  - 将该专辑目录下的所有音频曲目（`.m4a`/`.flac`）、LRC 歌词与超高清封面图完整打入 ZIP 压缩包，打包后自动清理中间散落文件，仅保留成品 ZIP 供用户一键下载。
+- **Apple Music 专辑名称、多语言 Unicode 与 3000px 超清封面元数据提取修复**:
+
+  - 修复了 `url_validator.py` 在清洗 URL 时误将 `%` 及非 ASCII 字符剔除导致歌曲名称乱码（如 `E7A59E...`）以及网页 404 无法获取封面的问题。
+  - 在 `AppleMusicDownloader.extract_info` 中深度集成了官方 iTunes Lookup API，毫秒级获取 100% 官方正式名称、艺术家及 **3000x3000px 超清封面大图**。
+- **Apple Music 开发者 Token 24小时自动续期与常驻生命周期守护**:
+  - 新增 `app/core/token_refresher.py` 模块与 FastAPI `lifespan` 24 小时后台巡检守护任务，实时解析 JWT `exp` 过期时间戳。
+  - 当 Token 剩余有效期小于 30 天时，系统自动从 Apple Music Web Player 在线爬取全新 Token 并热更新至 `config.yaml` 与 `.token_cache`，彻底免除 70 天过期的后顾之忧。
+- **Apple Music 开发者 Token 抓取兼容性与内置容灾回退**:
+
+  - 在 `utils/ampapi/token.go` 中内置了官方 Web Player 有效 Developer Token。当因网络阻断、CDN TLS 握手异常 (`EOF`) 或页面结构变动导致动态提取失败时，自动无缝回退至内置 Token，保障无论在何种网络环境下均 100% 具备合法 API 访问凭据。
+  - 在 `main.go` 中针对致命错误使用 `os.Exit(1)` 退出，杜绝容器静默退出。
+- **Apple Music 成品文件移动与收集逻辑修复**:
+  - 补齐了 `AppleMusicDownloader` 类中的 `_cleanup_empty_dirs` 与 `_cleanup_new_files` 辅助方法，解决下载解密成功后清理空目录时抛出 `AttributeError` 的问题。
+  - 优化了单曲直接交付与专辑打包流。
+
+- **Apple Music 实时流式进度 Carriage-Return (`\r`) 捕获修复**:
+
+  - 修复了 Go 进度条使用回车符 `\r` 刷新进度导致 Python `readline()` 必须等待单曲全量下载完成才返回换行 `\n`，从而导致前端界面在 `16-bit / 44100 Hz` 处长达数十秒无视觉反馈、看似卡死的问题。
+  - 重构了流式读取逻辑，同时支持 `\r` 与 `\n` 实时提取分块数据，并支持 `Downloading...` 与 `Decrypting...` 进度和速率的无缝实时推流。
 - **管理后台前端 AdminPage 参数解构命名错误修复**:
+
   - 修复了 `AdminPage.jsx` 组件入参将 `tasks` 误命名为 `allTasks` 导致访问后台时抛出 `TypeError: Cannot read properties of undefined (reading 'length')` 控制台无法打开的 React 崩溃问题。
 - **Apple Music 下载器网络死锁与超时机制加固**:
   - 在 `runv2.go` 中将音频流下载接入了 `httputil.Client` 代理客户端，并配置了请求 Context 超时，解决直连 Apple CDN 偶发停滞无限挂起的问题。

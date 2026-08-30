@@ -129,18 +129,13 @@ export default function YouTubePage({
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>YouTube Downloader</h2>
         </div>
 
-        {authStatus?.is_admin ? (
-          <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
-            ⚡ 管理员免限权：无限下载
+        {!authStatus?.is_admin && authStatus?.quota && (
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            今日剩余额度: <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.video_remaining}</strong> / {authStatus.quota.video_limit} 视频
           </span>
-        ) : (
-          authStatus?.quota && (
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              今日剩余额度: <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.video_remaining}</strong> / {authStatus.quota.video_limit} 视频
-            </span>
-          )
         )}
       </div>
+
 
       {/* Input Box on the Same Page */}
       <div className="download-input-container">

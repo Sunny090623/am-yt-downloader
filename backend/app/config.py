@@ -51,6 +51,17 @@ class Settings(BaseSettings):
     _cached_admin_hash: Optional[str] = None
 
     def get_admin_password_hash(self) -> str:
+        # 1. Check persistent file in data dir
+        pw_file = self.DATA_DIR / ".admin_password"
+        if pw_file.exists():
+            try:
+                stored = pw_file.read_text(encoding="utf-8").strip()
+                if stored.startswith("$2"):
+                    self._cached_admin_hash = stored
+                    return stored
+            except Exception:
+                pass
+
         if self.ADMIN_PASSWORD_HASH:
             return self.ADMIN_PASSWORD_HASH
         if self._cached_admin_hash:
@@ -60,6 +71,20 @@ class Settings(BaseSettings):
             self._cached_admin_hash = bcrypt.hashpw(self.ADMIN_PASSWORD.encode("utf-8")[:72], salt).decode("utf-8")
             return self._cached_admin_hash
         return ""
+
+    def update_admin_password(self, new_password: str) -> None:
+        """Updates admin password and stores hashed value persistently."""
+        salt = bcrypt.gensalt()
+        new_hash = bcrypt.hashpw(new_password.encode("utf-8")[:72], salt).decode("utf-8")
+        self._cached_admin_hash = new_hash
+        self.ADMIN_PASSWORD = new_password
+        
+        try:
+            self.DATA_DIR.mkdir(parents=True, exist_ok=True)
+            (self.DATA_DIR / ".admin_password").write_text(new_hash, encoding="utf-8")
+        except Exception:
+            pass
+
 
 settings = Settings()
 

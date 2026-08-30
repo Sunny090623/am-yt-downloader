@@ -52,7 +52,21 @@ def get_ytdlp_cmd_base() -> list:
     except ImportError:
         return [resolved]
 
+def kill_proc_tree(pid: int) -> None:
+    """Kills a process and all of its spawned child processes across Windows & Linux."""
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
+        else:
+            try:
+                os.killpg(os.getpgid(pid), 9)
+            except Exception:
+                os.kill(pid, 9)
+    except Exception:
+        pass
+
 class YouTubeDownloader(BaseDownloader):
+
     def validate_url(self, url: str) -> Tuple[bool, Optional[str], Optional[str]]:
         return validate_and_sanitize_youtube_url(url)
 
@@ -241,8 +255,10 @@ class YouTubeDownloader(BaseDownloader):
             async_proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                stderr=asyncio.subprocess.PIPE,
+                limit=4 * 1024 * 1024
             )
+
         except (NotImplementedError, AttributeError):
             use_threaded = True
         except FileNotFoundError:
@@ -266,10 +282,8 @@ class YouTubeDownloader(BaseDownloader):
                 if cancel_event.is_set():
                     logger.info(f"[Task {task_id}] 收到取消信号，终止子进程 PID {async_proc.pid}")
                     try:
+                        kill_proc_tree(async_proc.pid)
                         async_proc.terminate()
-                        await asyncio.sleep(0.5)
-                        if async_proc.returncode is None:
-                            async_proc.kill()
                     except Exception:
                         pass
                     stream_task.cancel()
@@ -296,7 +310,6 @@ class YouTubeDownloader(BaseDownloader):
                 stderr=subprocess.PIPE
             )
 
-
             def stdout_reader_thread():
                 for raw_line in iter(sync_proc.stdout.readline, b''):
                     line_str = raw_line.decode("utf-8", errors="replace").strip()
@@ -311,10 +324,12 @@ class YouTubeDownloader(BaseDownloader):
                 if cancel_event.is_set():
                     logger.info(f"[Task {task_id}] 收到取消信号，终止线程子进程 PID {sync_proc.pid}")
                     try:
+                        kill_proc_tree(sync_proc.pid)
                         sync_proc.terminate()
                     except Exception:
                         pass
                     raise asyncio.CancelledError("下载任务已取消")
+
 
                 try:
                     line = await asyncio.wait_for(line_queue.get(), timeout=0.5)

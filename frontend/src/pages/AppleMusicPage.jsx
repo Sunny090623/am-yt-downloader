@@ -139,19 +139,14 @@ export default function AppleMusicPage({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {authStatus?.is_admin ? (
-            <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
-              ⚡ 管理员免限权：无限下载
+          {!authStatus?.is_admin && authStatus?.quota && (
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              今日剩余额度: 专辑 <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit} 张 &nbsp;•&nbsp; 单曲 (Single) <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit} 首
             </span>
-          ) : (
-            authStatus?.quota && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                今日剩余额度: 专辑 <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit} 张 &nbsp;•&nbsp; 单曲 (Single) <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit} 首
-              </span>
-            )
           )}
 
           {onOpenSettings && (
+
             <button
               className="btn-cancel"
               style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}

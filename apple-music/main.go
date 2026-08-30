@@ -1991,22 +1991,23 @@ func writeMP4Tags(track *task.Track, lrc string) error {
 func main() {
 	err := loadConfig()
 	if err != nil {
-		fmt.Printf("load Config failed: %v", err)
-		return
+		fmt.Printf("load Config failed: %v\n", err)
+		os.Exit(1)
 	}
 	if err := httputil.Init(Config.Proxy); err != nil {
 		fmt.Printf("proxy config error: %v\n", err)
-		return
+		os.Exit(1)
 	}
 	token, err := ampapi.GetToken()
-	if err != nil {
+	if err != nil || token == "" {
 		if Config.AuthorizationToken != "" && Config.AuthorizationToken != "your-authorization-token" {
 			token = strings.Replace(Config.AuthorizationToken, "Bearer ", "", -1)
 		} else {
-			fmt.Println("Failed to get token.")
-			return
+			fmt.Printf("Failed to get token: %v\n", err)
+			os.Exit(1)
 		}
 	}
+
 	var search_type string
 	pflag.StringVar(&search_type, "search", "", "Search for 'album', 'song', or 'artist'. Provide query after flags.")
 	pflag.BoolVar(&dl_atmos, "atmos", false, "Enable atmos download mode")

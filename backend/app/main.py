@@ -3,8 +3,12 @@ import asyncio
 import os
 
 # Ensure Windows uses ProactorEventLoop to support asyncio subprocesses
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+if sys.platform == "win32" and sys.version_info < (3, 14):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
+
 
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,6 +23,17 @@ from app.api.routes_tasks import router as tasks_router
 from app.api.routes_download import router as download_router
 from app.api.routes_auth import router as auth_router
 from app.api.routes_admin import router as admin_router
+from app.core.token_refresher import token_manager
+
+
+async def token_refresh_background_worker():
+    """Periodically checks and auto-refreshes Apple Music developer tokens every 24 hours."""
+    while True:
+        try:
+            await token_manager.ensure_valid_token()
+        except Exception as e:
+            print(f"[TokenWorker] Token 检查异常: {e}")
+        await asyncio.sleep(86400)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,14 +48,19 @@ async def lifespan(app: FastAPI):
     # 3. Start Background 24h Cleanup Task
     cleanup_task = asyncio.create_task(cleanup_background_worker())
     
+    # 4. Start Background Apple Music Token Refresher
+    token_task = asyncio.create_task(token_refresh_background_worker())
+    
     yield
     
-    # 4. Graceful Shutdown
+    # 5. Graceful Shutdown
     cleanup_task.cancel()
+    token_task.cancel()
     try:
-        await cleanup_task
-    except asyncio.CancelledError:
+        await asyncio.gather(cleanup_task, token_task, return_exceptions=True)
+    except Exception:
         pass
+
 
 app = FastAPI(
     title="AM-YT Downloader API",

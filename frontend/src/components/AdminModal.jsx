@@ -81,8 +81,8 @@ export default function AdminModal({
                 <span>进入管理控制台</span>
               </button>
               <button
-                className="btn-cancel"
-                style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                className="btn-danger-outline"
+                style={{ padding: '0.75rem 1.25rem' }}
                 onClick={handleLogout}
                 disabled={loading}
               >
@@ -91,6 +91,7 @@ export default function AdminModal({
               </button>
             </div>
           </div>
+
         ) : (
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>

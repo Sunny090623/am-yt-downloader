@@ -365,3 +365,40 @@ async def test_wrapper_connectivity(req: UpdateAppleMusicConfigRequest):
             target=target_addr
         )
 
+
+from pydantic import BaseModel, Field
+from app.core.auth import verify_admin_password
+
+class ChangeAdminPasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, description="当前密码")
+    new_password: str = Field(..., min_length=6, description="新管理员密码 (至少6位)")
+
+@router.post("/change-password")
+async def change_admin_password(
+    payload: ChangeAdminPasswordRequest,
+    user_ctx: UserContext = Depends(require_admin)
+):
+    """Securely updates the administrator password and persists it."""
+    # 1. Verify current password
+    if not verify_admin_password(payload.current_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="原管理员密码不正确，请重新输入"
+        )
+    
+    # 2. Prevent same password
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="新密码不能与原密码相同"
+        )
+
+    # 3. Update password persistently
+    settings.update_admin_password(payload.new_password)
+    
+    return {
+        "success": True,
+        "message": "管理员密码修改成功！请牢记您的新密码。"
+    }
+
+

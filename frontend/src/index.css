@@ -371,6 +371,91 @@ body {
   box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.5);
 }
 
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-danger-outline {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: #ef4444;
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-danger-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+.input-field {
+  width: 100%;
+  background: var(--bg-input, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-primary, #ffffff);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input-field:focus {
+  border-color: var(--border-focus, #6366f1);
+  box-shadow: 0 0 0 3px var(--border-glow, rgba(99, 102, 241, 0.25));
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -427,15 +512,25 @@ body {
 .task-thumbnail {
   width: 100px;
   height: 64px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   object-fit: cover;
   background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
+.task-thumbnail.album-cover {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
 
 .task-info {
   flex: 1;

@@ -80,6 +80,14 @@ class DownloadTaskManager:
 
     async def cancel_task(self, task_id: str, user_id: str, is_admin: bool) -> bool:
         """Cancels an in-flight or queued task and refunds quota."""
+        if task_id in self._cancel_events:
+            self._cancel_events[task_id].set()
+
+        if task_id in self._running_tasks:
+            bg_task = self._running_tasks[task_id]
+            if not bg_task.done():
+                bg_task.cancel()
+
         async with AsyncSessionLocal() as db:
             stmt = select(DownloadTask).where(DownloadTask.id == task_id)
             res = await db.execute(stmt)
@@ -93,9 +101,6 @@ class DownloadTaskManager:
                 return False
 
             logger.info(f"[TaskManager] 正在取消任务: ID={task_id}, 用户={user_id}")
-
-            if task_id in self._cancel_events:
-                self._cancel_events[task_id].set()
 
             # Update DB immediately if queued or processing
             task.status = TaskStatus.CANCELLED.value
@@ -149,7 +154,7 @@ class DownloadTaskManager:
                 raise nie
             except Exception as e:
                 # Metadata extraction non-fatal for download, but nice for UI
-                metadata = MediaMetadata(title="YouTube Media")
+                metadata = MediaMetadata(title="Audio")
 
             await self._update_task_db_and_broadcast(
                 task_id, user_id,
@@ -158,6 +163,7 @@ class DownloadTaskManager:
                 duration=metadata.duration,
                 thumbnail_url=metadata.thumbnail_url
             )
+
 
             if cancel_event.is_set():
                 return

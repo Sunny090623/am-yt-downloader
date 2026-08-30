@@ -160,6 +160,22 @@ export async function testWrapperConnection(wrapperIp) {
   return data;
 }
 
+export async function changeAdminPassword(currentPassword, newPassword) {
+  const res = await fetch(`${BASE_URL}/api/admin/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword
+    }),
+    credentials: 'include'
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '修改密码失败');
+  return data;
+}
+
+
 export function subscribeToTaskEvents(onTaskUpdate) {
 
   const eventSource = new EventSource(`${BASE_URL}/api/tasks/events`, {

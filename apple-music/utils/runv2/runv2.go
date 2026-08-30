@@ -14,6 +14,7 @@ import (
 	"os"
 	"time"
 
+	"main/utils/httputil"
 	"main/utils/structs"
 
 	"github.com/grafov/m3u8"
@@ -45,21 +46,23 @@ func (b *TimedResponseBody) Read(p []byte) (int, error) {
 
 func Run(adamId string, playlistUrl string, outfile string, Config structs.ConfigSet) error {
 	var err error
-	var optstimeout uint
-	optstimeout = 0
-	timeout := time.Duration(optstimeout * uint(time.Millisecond))
 	header := make(http.Header)
 
-	// request media playlist
+	// request media playlist using shared proxy-aware client
 	req, err := http.NewRequest("GET", playlistUrl, nil)
 	if err != nil {
 		return err
 	}
 	req.Header = header
-	// requesting an HLS playlist should be relatively fast, so we set the timeout directly on the client
-	do, err := (&http.Client{Timeout: timeout}).Do(req)
+	
+	client := httputil.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	
+	do, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("request m3u8 playlist error: %w", err)
 	}
 
 	// parse m3u8
@@ -86,8 +89,8 @@ func Run(adamId string, playlistUrl string, outfile string, Config structs.Confi
 	}
 
 	// request mp4
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 	req, err = http.NewRequestWithContext(ctx, "GET", fileUrl.String(), nil)
 	if err != nil {
 		return err
@@ -95,66 +98,47 @@ func Run(adamId string, playlistUrl string, outfile string, Config structs.Confi
 	req.Header = header
 
 	var body io.Reader
-	client := &http.Client{Timeout: timeout}
-	if optstimeout > 0 {
-		// create the timer before calling Do so that the timeout covers TCP handshake,
-		// TLS handshake, sending the request and receiving HTTP headers
-		timer := time.AfterFunc(timeout, func() { cancel(ErrTimeout) })
-		do, err = client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer do.Body.Close()
-		body = &TimedResponseBody{
-			timeout:   timeout,
-			timer:     timer,
-			threshold: 256,
-			body:      do.Body,
-		}
+	do, err = client.Do(req)
+	if err != nil {
+		return fmt.Errorf("download audio stream error: %w", err)
+	}
+	defer do.Body.Close()
+
+	if do.ContentLength < int64(Config.MaxMemoryLimit * 1024 * 1024) {
+		var buffer bytes.Buffer
+		bar := progressbar.NewOptions64(
+			do.ContentLength,
+			progressbar.OptionClearOnFinish(),
+			progressbar.OptionSetElapsedTime(false),
+			progressbar.OptionSetPredictTime(false),
+			progressbar.OptionShowElapsedTimeOnFinish(),
+			progressbar.OptionShowCount(),
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetDescription("Downloading..."),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "",
+				SaucerHead:    "",
+				SaucerPadding: "",
+				BarStart:      "",
+				BarEnd:        "",
+			}),
+		)
+		io.Copy(io.MultiWriter(&buffer, bar), do.Body)
+		body = &buffer
+		fmt.Print("Downloaded\n")
 	} else {
-		do, err = client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer do.Body.Close()
-		if do.ContentLength < int64(Config.MaxMemoryLimit * 1024 * 1024) {
-			var buffer bytes.Buffer
-			bar := progressbar.NewOptions64(
-				do.ContentLength,
-				progressbar.OptionClearOnFinish(),
-				progressbar.OptionSetElapsedTime(false),
-				progressbar.OptionSetPredictTime(false),
-				progressbar.OptionShowElapsedTimeOnFinish(),
-				progressbar.OptionShowCount(),
-				progressbar.OptionEnableColorCodes(true),
-				progressbar.OptionShowBytes(true),
-				progressbar.OptionSetDescription("Downloading..."),
-				progressbar.OptionSetTheme(progressbar.Theme{
-					Saucer:        "",
-					SaucerHead:    "",
-					SaucerPadding: "",
-					BarStart:      "",
-					BarEnd:        "",
-				}),
-			)
-			io.Copy(io.MultiWriter(&buffer, bar), do.Body)
-			body = &buffer
-			fmt.Print("Downloaded\n")
-		} else {
-			body = do.Body
-		}
+		body = do.Body
 	}
 
 	var totalLen int64
 	totalLen = do.ContentLength
-	// connect to decryptor
-	//addr := fmt.Sprintf("127.0.0.1:10020")
+	// connect to decryptor with timeout
 	addr := Config.DecryptM3u8Port
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, 15*time.Second)
 	if err != nil {
-		return err
+		return fmt.Errorf("无法连接到 Wrapper 服务 (%s): %w", addr, err)
 	}
-	//fmt.Print("Decrypting...\n")
 	defer Close(conn)
 
 	err = downloadAndDecryptFile(conn, body, outfile, adamId, segments, totalLen, Config)
@@ -164,6 +148,7 @@ func Run(adamId string, playlistUrl string, outfile string, Config structs.Confi
 	fmt.Print("Decrypted\n")
 	return nil
 }
+
 
 func downloadAndDecryptFile(conn io.ReadWriter, in io.Reader, outfile string,
 	adamId string, playlistSegments []*m3u8.MediaSegment, totalLen int64, Config structs.ConfigSet) error {

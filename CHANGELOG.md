@@ -24,10 +24,17 @@ All notable changes, bug fixes, and feature additions for this project are docum
 - **S5 & S6 (URL Sanitization Tightening)**: Enhanced URL path sanitization in `validate_and_sanitize_apple_music_url` to strictly reject directory traversal attempts (`..`), and sanitized fallback query arguments.
 
 ### Fixed
+- **管理后台前端 AdminPage 参数解构命名错误修复**:
+  - 修复了 `AdminPage.jsx` 组件入参将 `tasks` 误命名为 `allTasks` 导致访问后台时抛出 `TypeError: Cannot read properties of undefined (reading 'length')` 控制台无法打开的 React 崩溃问题。
+- **Apple Music 下载器网络死锁与超时机制加固**:
+  - 在 `runv2.go` 中将音频流下载接入了 `httputil.Client` 代理客户端，并配置了请求 Context 超时，解决直连 Apple CDN 偶发停滞无限挂起的问题。
+  - 为 Wrapper 解密 TCP 握手增加了 `net.DialTimeout("tcp", addr, 15*time.Second)`，彻底杜绝跨设备网络通讯时的死锁阻塞。
+  - 移除了 `main.go` 中的 `fmt.Scanln()` 交互回车等待，防止后台容器无输入环境下永久卡死。
 - **管理员路由模块缺失 `from typing import Optional` 修复**:
   - 修复了在 `routes_admin.py` 中使用 `Optional[str]` 类型注解但在模块顶部未导入 `Optional` 导致的 `NameError: name 'Optional' is not defined` 容器启动异常，补齐了完整的类型导入。
 - **Synology NAS 挂载目录初始化与 Git 目录结构修复**:
   - 创建了 `data/.gitkeep` 与 `storage/.gitkeep`，并在 `.gitignore` 中配置白名单保留规则，解决群晖 DSM Docker 引擎在宿主机目录不存在时抛出 `Bind mount failed: '/volume1/.../data' does not exist` 的错误。
+
 
 - **Docker 构建缺失 Debian 12 (bookworm) gpac 软件包修复 (方案一)**: 
   - 针对 Debian 12 官方源彻底移除 `gpac` 的问题，在 [docker/Dockerfile](file:///c:/Users/zihan/Desktop/My-Projects/am-yt-downloader/docker/Dockerfile) 中新增了 `gpac-builder` 独立多阶段构建阶段。

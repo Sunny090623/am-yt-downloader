@@ -27,13 +27,13 @@ function formatBytes(bytes) {
 }
 
 export default function AdminPage({
-  userContext,
-  allTasks,
+  tasks = [],
   refreshTasks,
   refreshAuth,
   addToast,
   onNavigateHome
 }) {
+
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState('');
   const [logSource, setLogSource] = useState('app'); // 'app' | 'apple_music'

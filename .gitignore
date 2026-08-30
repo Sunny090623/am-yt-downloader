@@ -30,14 +30,16 @@ frontend/.vite/
 .eslintcache
 
 # Database, Runtime Media & Storage (Gigabytes of media)
-data/
-storage/
-**/data/
-**/storage/
-backend/data/
+data/*
+!data/.gitkeep
+storage/*
+!storage/.gitkeep
+backend/data/*
+!backend/data/.gitkeep
 *.db
 *.sqlite
 *.sqlite3
+
 
 # Downloaded Media Files & Temporary Fragments
 *.mkv

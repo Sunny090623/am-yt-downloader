@@ -19,9 +19,15 @@ All notable changes, bug fixes, and feature additions for this project are docum
 - **S5 & S6 (URL Sanitization Tightening)**: Enhanced URL path sanitization in `validate_and_sanitize_apple_music_url` to strictly reject directory traversal attempts (`..`), and sanitized fallback query arguments.
 
 ### Fixed
+- **管理员路由模块缺失 `from typing import Optional` 修复**:
+  - 修复了在 `routes_admin.py` 中使用 `Optional[str]` 类型注解但在模块顶部未导入 `Optional` 导致的 `NameError: name 'Optional' is not defined` 容器启动异常，补齐了完整的类型导入。
+- **Synology NAS 挂载目录初始化与 Git 目录结构修复**:
+  - 创建了 `data/.gitkeep` 与 `storage/.gitkeep`，并在 `.gitignore` 中配置白名单保留规则，解决群晖 DSM Docker 引擎在宿主机目录不存在时抛出 `Bind mount failed: '/volume1/.../data' does not exist` 的错误。
+
 - **Docker 构建缺失 Debian 12 (bookworm) gpac 软件包修复 (方案一)**: 
   - 针对 Debian 12 官方源彻底移除 `gpac` 的问题，在 [docker/Dockerfile](file:///c:/Users/zihan/Desktop/My-Projects/am-yt-downloader/docker/Dockerfile) 中新增了 `gpac-builder` 独立多阶段构建阶段。
   - 使用 `--static-bin --use-zlib=no --disable-x11 --disable-ssl` 静态编译最小化 `MP4Box` 二进制，彻底消除宿主机及容器内 `libGL.so.1` 等图形库缺失报错，通过 `strip` 与直接拷贝 `bin/gcc/MP4Box` 规避 `make install` 对头文件执行 strip 的异常，并将产物注入运行镜像。
+
 - **Docker 构建 Go 编译器版本升级**: 将 `go-builder` 基础镜像从 `golang:1.22-alpine` 升级为 `golang:1.23-alpine`，满足 `apple-music/go.mod` 要求的 `go >= 1.23.1` 编译约束。
 - **Apple Music 下载器缺失 `import time` 修复**: 修复了在 `apple_music.py` 中记录任务起始时间戳 (`time.time()`) 时抛出 `NameError: name 'time' is not defined` 的问题，补充了标准库依赖导入。
 - **B1 (Atomic Quota Consumption & TOCTOU Race Fix)**: Implemented atomic `check_and_consume_quota` executing within a single database transaction in `quota.py` and `task_manager.py`, eliminating Time-of-Check to Time-of-Use race conditions under concurrent download submissions.

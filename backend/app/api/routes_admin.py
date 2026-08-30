@@ -187,18 +187,33 @@ async def admin_delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
     return {"success": True, "message": f"任务 {task_id} 及其文件已彻底删除"}
 
 @router.get("/logs")
-async def get_system_logs(lines: int = 150):
-    """Fetches recent runtime logs from data/logs/app.log."""
-    from app.core.logger import LOG_FILE
-    if not LOG_FILE.exists():
+async def get_system_logs(lines: int = 150, source: str = "app"):
+    """Fetches recent runtime logs from data/logs/app.log or data/logs/apple_music/apple_music.log."""
+    from app.core.logger import LOG_FILE, APPLE_MUSIC_LOG_FILE
+    target_file = APPLE_MUSIC_LOG_FILE if source == "apple_music" else LOG_FILE
+    if not target_file.exists():
         return {"logs": "日志文件尚未生成或暂无日志记录"}
     try:
-        with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as f:
+        with open(target_file, "r", encoding="utf-8", errors="replace") as f:
             all_lines = f.readlines()
             recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
             return {"logs": "".join(recent_lines)}
     except Exception as e:
         return {"logs": f"读取日志文件失败: {str(e)}"}
+
+@router.get("/logs/apple-music/{task_id}")
+async def get_apple_music_task_log(task_id: str):
+    """Fetches specific task log from data/logs/apple_music/{task_id}.log."""
+    from app.core.logger import APPLE_MUSIC_LOG_DIR
+    clean_id = re.sub(r'[^a-zA-Z0-9_-]', '', task_id)
+    task_log = APPLE_MUSIC_LOG_DIR / f"{clean_id}.log"
+    if not task_log.exists():
+        return {"logs": f"未找到任务 {task_id} 的独立日志文件"}
+    try:
+        return {"logs": task_log.read_text(encoding="utf-8", errors="replace")}
+    except Exception as e:
+        return {"logs": f"读取任务日志失败: {str(e)}"}
+
 
 def read_apple_music_config_from_disk() -> dict:
     """Reads current Apple Music config from disk (config.yaml or fallback to example)."""

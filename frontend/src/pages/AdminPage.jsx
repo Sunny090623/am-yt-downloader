@@ -9,7 +9,8 @@ import {
   CheckCircle, 
   AlertTriangle,
   Server,
-  LogOut
+  LogOut,
+  Music
 } from 'lucide-react';
 import { fetchAdminStats, triggerManualCleanup, deleteAdminTask, adminLogout, fetchAdminLogs } from '../services/api';
 
@@ -22,11 +23,12 @@ function formatBytes(bytes) {
     val /= 1024;
     i++;
   }
-  return `${val.toFixed(2)} ${units[i]}`;
+  return `${val.toFixed(1)} ${units[i]}`;
 }
 
 export default function AdminPage({
-  tasks,
+  userContext,
+  allTasks,
   refreshTasks,
   refreshAuth,
   addToast,
@@ -34,6 +36,7 @@ export default function AdminPage({
 }) {
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState('');
+  const [logSource, setLogSource] = useState('app'); // 'app' | 'apple_music'
   const [loading, setLoading] = useState(true);
   const [cleaning, setCleaning] = useState(false);
   const logContainerRef = useRef(null);
@@ -49,9 +52,9 @@ export default function AdminPage({
     }
   };
 
-  const loadLogs = async () => {
+  const loadLogs = async (source = logSource) => {
     try {
-      const logText = await fetchAdminLogs();
+      const logText = await fetchAdminLogs(source);
       setLogs(logText);
     } catch (e) {
       console.error('Failed to load logs', e);
@@ -60,8 +63,8 @@ export default function AdminPage({
 
   useEffect(() => {
     loadStats();
-    loadLogs();
-  }, []);
+    loadLogs(logSource);
+  }, [logSource]);
 
   // Automatically scroll to the latest log line whenever logs update
   useEffect(() => {
@@ -240,12 +243,57 @@ export default function AdminPage({
 
       {/* Real-time System Logs */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '1.05rem' }}>
-            <Server size={18} color="#6366f1" />
-            <span>实时运行日志 (data/logs/app.log)</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '1.05rem' }}>
+              <Server size={18} color="#6366f1" />
+              <span>实时运行日志</span>
+            </div>
+
+            {/* Source Switcher Tabs */}
+            <div style={{ display: 'flex', background: 'var(--bg-primary)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <button
+                type="button"
+                onClick={() => setLogSource('app')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: logSource === 'app' ? 'var(--primary-color)' : 'transparent',
+                  color: logSource === 'app' ? '#ffffff' : 'var(--text-secondary)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                系统主日志 (app.log)
+              </button>
+              <button
+                type="button"
+                onClick={() => setLogSource('apple_music')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: logSource === 'apple_music' ? '#ec4899' : 'transparent',
+                  color: logSource === 'apple_music' ? '#ffffff' : 'var(--text-secondary)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Music size={12} />
+                Apple Music 引擎日志
+              </button>
+            </div>
           </div>
-          <button className="icon-btn" style={{ width: '30px', height: '30px' }} onClick={loadLogs} title="刷新日志">
+
+          <button className="icon-btn" style={{ width: '30px', height: '30px' }} onClick={() => loadLogs(logSource)} title="刷新日志">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -259,7 +307,7 @@ export default function AdminPage({
             fontFamily: 'var(--font-mono)',
             fontSize: '0.8rem',
             color: 'var(--text-secondary)',
-            maxHeight: '280px',
+            maxHeight: '300px',
             overflowY: 'auto',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
@@ -269,6 +317,7 @@ export default function AdminPage({
         >
           {logs || '正在获取日志...'}
         </pre>
+
 
       </div>
     </div>

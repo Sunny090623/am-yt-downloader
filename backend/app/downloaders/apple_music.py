@@ -12,10 +12,12 @@ import zipfile
 from pathlib import Path
 
 from typing import Optional, Tuple, List
+from datetime import datetime
 from app.config import settings
 from app.downloaders.base import BaseDownloader, MediaMetadata, ProgressCallback
 from app.core.url_validator import validate_and_sanitize_apple_music_url
-from app.core.logger import logger
+from app.core.logger import logger, APPLE_MUSIC_LOG_DIR, APPLE_MUSIC_LOG_FILE
+
 
 TRACK_PROGRESS_REGEX = re.compile(r"Track\s+(\d+)\s+of\s+(\d+):", re.IGNORECASE)
 DOWNLOADING_PROGRESS_REGEX = re.compile(r"Downloading\.\.\.\s+([\d\.]+)%?\s*(?:\(([^,\)]+)(?:,\s*([^\)]+))?\))?", re.IGNORECASE)
@@ -256,9 +258,29 @@ class AppleMusicDownloader(BaseDownloader):
         progress_callback: ProgressCallback,
         cancel_event: asyncio.Event
     ) -> None:
-        """Executes Apple Music Downloader subprocess, parsing stdout/stderr lines."""
+        """Executes Apple Music Downloader subprocess, parsing stdout/stderr lines and recording full logs."""
         loop = asyncio.get_running_loop()
         line_queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+
+        task_log_file = APPLE_MUSIC_LOG_DIR / f"{task_id}.log"
+
+        def write_am_log(text: str):
+            if not text:
+                return
+            ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_line = f"{ts_str} [Task {task_id}] {text}\n"
+            try:
+                with open(task_log_file, "a", encoding="utf-8", errors="replace") as f_task:
+                    f_task.write(log_line)
+            except Exception:
+                pass
+            try:
+                with open(APPLE_MUSIC_LOG_FILE, "a", encoding="utf-8", errors="replace") as f_all:
+                    f_all.write(log_line)
+            except Exception:
+                pass
+
+        write_am_log(f"启动 Apple Music 下载进程: {' '.join(cmd)} (工作目录: {work_dir})")
 
         current_track_idx = 1
         total_tracks_count = 1
@@ -268,6 +290,8 @@ class AppleMusicDownloader(BaseDownloader):
             nonlocal current_track_idx, total_tracks_count, last_track_percent
             if not line:
                 return
+
+            write_am_log(line)
 
             # Match Track X of Y
             track_match = TRACK_PROGRESS_REGEX.search(line)
@@ -304,14 +328,17 @@ class AppleMusicDownloader(BaseDownloader):
             async_proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 cwd=str(work_dir),
+                stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT
             )
         except (NotImplementedError, AttributeError):
             use_threaded = True
         except FileNotFoundError:
+            write_am_log(f"未找到可执行命令: {cmd[0]}")
             raise RuntimeError(f"未找到可执行命令: {cmd[0]}")
         except Exception as e:
+            write_am_log(f"启动 Apple Music 进程失败: {str(e)}")
             raise RuntimeError(f"启动 Apple Music 进程失败: {str(e)}")
 
         if not use_threaded and async_proc:
@@ -328,6 +355,7 @@ class AppleMusicDownloader(BaseDownloader):
             while async_proc.returncode is None:
                 if cancel_event.is_set():
                     logger.info(f"[Task {task_id}] 收到取消信号，终止 Apple Music 进程 PID {async_proc.pid}")
+                    write_am_log(f"收到取消信号，终止 Apple Music 进程 PID {async_proc.pid}")
                     try:
                         async_proc.terminate()
                         await asyncio.sleep(0.5)
@@ -344,6 +372,7 @@ class AppleMusicDownloader(BaseDownloader):
                     pass
 
             await stream_task
+            write_am_log(f"Apple Music 进程已退出，退出码: {async_proc.returncode}")
             if async_proc.returncode != 0:
                 logger.error(f"[Task {task_id}] Apple Music 异常退出 ({async_proc.returncode})")
                 raise RuntimeError(f"Apple Music 下载失败 (退出码 {async_proc.returncode})")
@@ -353,10 +382,10 @@ class AppleMusicDownloader(BaseDownloader):
             sync_proc = subprocess.Popen(
                 cmd,
                 cwd=str(work_dir),
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT
             )
-
 
             def stdout_reader():
                 for raw_line in iter(sync_proc.stdout.readline, b''):
@@ -370,6 +399,7 @@ class AppleMusicDownloader(BaseDownloader):
             while True:
                 if cancel_event.is_set():
                     logger.info(f"[Task {task_id}] 收到取消信号，终止线程子进程 PID {sync_proc.pid}")
+                    write_am_log(f"收到取消信号，终止线程子进程 PID {sync_proc.pid}")
                     try:
                         sync_proc.terminate()
                     except Exception:
@@ -388,6 +418,8 @@ class AppleMusicDownloader(BaseDownloader):
             reader_t.join(timeout=2.0)
             sync_proc.wait()
 
+            write_am_log(f"Apple Music 线程进程已退出，退出码: {sync_proc.returncode}")
             if sync_proc.returncode != 0:
                 logger.error(f"[Task {task_id}] Apple Music 进程异常退出 ({sync_proc.returncode})")
                 raise RuntimeError(f"Apple Music 下载失败 (退出码 {sync_proc.returncode})")
+

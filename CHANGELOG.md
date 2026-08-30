@@ -5,7 +5,12 @@ All notable changes, bug fixes, and feature additions for this project are docum
 ## [v0.2.1] - 2026-08-28
 
 ### Added
+- **Apple Music 独立日志目录与全量实时日志落盘 (`data/logs/apple_music/`)**:
+  - **双轨日志落盘机制**: 在 `backend/data/logs/apple_music/` 目录下为每个下载任务生成独立的 `task_{id}.log`，同时自动汇总写入滚动的 `apple_music.log`，完整记录下载器原生 stdout/stderr（包含音频分片解密、MP4Box 标签处理、网络请求细节）。
+  - **管理端日志源切换 UI**: 在管理后台日志查看面板增加 Tab 切换组件，支持在“系统主日志 (`app.log`)”与“Apple Music 引擎日志 (`apple_music.log`)”之间一键切换并实时刷新。
+  - **标准输入防挂起保护**: 启动 Apple Music 子进程时显式关闭 `stdin`（重定向为 `DEVNULL`），杜绝因 `fmt.Scanln()` 或交互提示等待回车导致容器后台永久卡死。
 - **Apple Music 与 Wrapper 服务端前端可视化配置**:
+
   - **SettingsModal 模态框**: 在导航栏及 Apple Music 页面增加入口，支持直接输入局域网 Wrapper 服务端 IP（如 `192.168.3.154`）与 Apple Music `media-user-token`，支持密码可见性切换。
   - **自动化配置与双向同步**: 打开设置时自动读取并回显现有 `apple-music/config.yaml` 磁盘配置；保存时自动清洗 IP 并精准更新 `decrypt-m3u8-port: "<IP>:10020"` 与 `get-m3u8-port: "<IP>:20020"`，完整保护其他字段与注释。
   - **实时连通性探测 API**: 增加 `POST /api/admin/settings/apple-music/test`，在前端一键测试 10020 端口 TCP 连通性并实时反馈状态。

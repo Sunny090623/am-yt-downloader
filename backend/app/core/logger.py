@@ -9,6 +9,11 @@ LOG_DIR = settings.DATA_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "app.log"
 
+APPLE_MUSIC_LOG_DIR = LOG_DIR / "apple_music"
+APPLE_MUSIC_LOG_DIR.mkdir(parents=True, exist_ok=True)
+APPLE_MUSIC_LOG_FILE = APPLE_MUSIC_LOG_DIR / "apple_music.log"
+
+
 def setup_logger(name: str = "am_yt_downloader") -> logging.Logger:
     logger = logging.getLogger(name)
     if logger.handlers:

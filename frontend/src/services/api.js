@@ -112,14 +112,15 @@ export async function deleteAdminTask(taskId) {
   return data;
 }
 
-export async function fetchAdminLogs() {
-  const res = await fetch(`${BASE_URL}/api/admin/logs`, {
+export async function fetchAdminLogs(source = 'app') {
+  const res = await fetch(`${BASE_URL}/api/admin/logs?source=${encodeURIComponent(source)}&lines=200`, {
     credentials: 'include'
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || '获取运行日志失败');
   return data.logs;
 }
+
 
 export async function fetchAppleMusicSettings() {
   const res = await fetch(`${BASE_URL}/api/admin/settings/apple-music`, {

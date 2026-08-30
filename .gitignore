@@ -32,10 +32,25 @@ frontend/.vite/
 # Database, Runtime Media & Storage (Gigabytes of media)
 data/*
 !data/.gitkeep
+!data/logs/
+data/logs/*
+!data/logs/.gitkeep
+!data/logs/apple_music/
+data/logs/apple_music/*
+!data/logs/apple_music/.gitkeep
+
 storage/*
 !storage/.gitkeep
+
 backend/data/*
 !backend/data/.gitkeep
+!backend/data/logs/
+backend/data/logs/*
+!backend/data/logs/.gitkeep
+!backend/data/logs/apple_music/
+backend/data/logs/apple_music/*
+!backend/data/logs/apple_music/.gitkeep
+
 *.db
 *.sqlite
 *.sqlite3
@@ -65,10 +80,9 @@ apple-music/config.yaml
 
 
 # Logs
-logs/
 *.log
-data/logs/
-backend/data/logs/
+
+
 
 # Testing & Coverage
 .pytest_cache/

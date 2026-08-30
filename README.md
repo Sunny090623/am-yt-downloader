@@ -105,7 +105,7 @@
 
 ### 🚀 一键启动步骤
 
-1. 将整个项目文件夹复制到群晖 NAS（例如 `/volume1/BitComet/docker/am-yt-downloader`）或 Linux 服务器；
+1. 将整个项目文件夹复制到群晖 NAS 或 Linux 服务器；
 2. 在该目录下直接执行一行命令：
    ```bash
    docker compose up -d --build
@@ -132,7 +132,7 @@ Apple Music 下载依赖于局域网内运行的 Apple Music Wrapper 解密服�
 ### 方式二：手动编辑配置文件
 
 1. 将 `apple-music/config.yaml.example` 复制为 `apple-music/config.yaml`（若尚不存在）；
-2. 打开 `apple-music/config.yaml`，根据实际情况修改如下字段：
+2. 打开 `apple-music/config.yaml`，根据实际情况修改如下字段，例如：
    ```yaml
    media-user-token: "你的-media-user-token"   # 获取 AAC-LC 与歌词所需凭据 (可选)
    decrypt-m3u8-port: "192.168.3.154:10020" # Wrapper 解密端口

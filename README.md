@@ -14,6 +14,7 @@
 - [x] **适配 Apple Music 下载**：接入 Apple Music 下载引擎，支持单曲 (Single) 与专辑 (Album) 独立额度管理、无损音质解析及完整元数据标签写入。
 - [x] **Docker 镜像构建性能优化**：引入全量 `.dockerignore` 上下文拦截、本地 Go 源码编译加速、Pip pre-built wheels 预拉取及多阶段层级复用，构建耗时大幅降低。
 - [x] **修复 `docker compose up -d --build` 一键构建**：内置全套编译环境，实现零配置秒级构建启动。
+- [ ] 修复am downloader下载好后打包错误的问题。
 - [ ] 适配 `apple-music-downloader` 中更多可选参数（如杜比全景声、MV 提取等）。
 
 ---
@@ -36,6 +37,7 @@
 
 * 单曲下载无法正确写入歌词，为 Apple Music Downloader 上游行为，持续跟进中。
 * 移动端显示异常。
+* am downloader下载好后打包错误。
 
 ---
 

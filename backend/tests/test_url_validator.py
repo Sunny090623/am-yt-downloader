@@ -91,3 +91,20 @@ def test_reject_apple_music_invalid_domain():
     assert is_valid is False
     assert media_type is None
     assert "不支持的域名" in err
+
+def test_valid_apple_music_itunes_domain_and_storefront():
+    url = "https://itunes.apple.com/cn/album/wonder-feat-hatsune-miku/1677610012?i=1677610013"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is True
+    assert sanitized == "https://music.apple.com/cn/album/wonder-feat-hatsune-miku/1677610012?i=1677610013"
+    assert media_type == "song"
+    assert err is None
+
+def test_valid_apple_music_url_with_trailing_slash_and_tracking_params():
+    url = "https://music.apple.com/jp/album/wonder-feat-hatsune-miku/1677610012/?uo=4&app=music"
+    is_valid, sanitized, media_type, err = validate_and_sanitize_apple_music_url(url)
+    assert is_valid is True
+    assert sanitized == "https://music.apple.com/jp/album/wonder-feat-hatsune-miku/1677610012"
+    assert media_type == "album"
+    assert err is None
+

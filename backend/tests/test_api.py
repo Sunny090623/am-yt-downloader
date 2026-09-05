@@ -11,6 +11,8 @@ from app.config import settings
 async def app_test_client(tmp_path):
     storage_dir = tmp_path / "storage"
     storage_dir.mkdir(parents=True, exist_ok=True)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -24,6 +26,7 @@ async def app_test_client(tmp_path):
     app.dependency_overrides[get_db] = override_get_db
 
     with patch.object(settings, "STORAGE_DIR", storage_dir), \
+         patch.object(settings, "DATA_DIR", data_dir), \
          patch("app.core.task_manager.AsyncSessionLocal", TestSession), \
          patch("app.database.AsyncSessionLocal", TestSession):
         transport = ASGITransport(app=app)
@@ -141,6 +144,43 @@ async def test_api_download_path_traversal_prevention(app_test_client):
     resp = await client.get("/api/downloads/evil_task_1/file")
     # Anonymous user doesn't own this task -> 403
     assert resp.status_code == 403
+
+@pytest.mark.asyncio
+async def test_api_download_dual_content_disposition_header(app_test_client):
+    client, TestSession, storage_dir = app_test_client
+
+    status_resp = await client.get("/api/auth/status")
+    user_id = status_resp.json()["user_id"]
+
+    # Create dummy downloaded file
+    task_dir = storage_dir / user_id / "task_dl_header"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    m4a_file = task_dir / "01. wonder (feat. 初音ミク).m4a"
+    m4a_file.write_bytes(b"dummy audio content")
+
+    async with TestSession() as db:
+        valid_task = DownloadTask(
+            id="task_dl_header",
+            user_id=user_id,
+            service_type="apple_music",
+            media_type="song",
+            url="https://music.apple.com/jp/album/wonder/123",
+            status=TaskStatus.COMPLETED.value,
+            file_name="01. wonder (feat. 初音ミク).m4a",
+            file_path=str(m4a_file),
+            file_size=len(b"dummy audio content")
+        )
+        db.add(valid_task)
+        await db.commit()
+
+    resp = await client.get("/api/downloads/task_dl_header/file")
+    assert resp.status_code == 200
+    cd = resp.headers.get("Content-Disposition", "")
+    # Must contain ASCII filename fallback and RFC 6266 filename*=UTF-8''
+    assert 'filename="' in cd
+    assert "filename*=UTF-8''" in cd
+    assert "wonder" in cd
+
 
 @pytest.mark.asyncio
 async def test_api_manual_delete_task_without_quota_refund(app_test_client):

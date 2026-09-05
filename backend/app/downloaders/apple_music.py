@@ -57,6 +57,11 @@ class AppleMusicDownloader(BaseDownloader):
         path_parts = [p for p in parsed.path.split("/") if p]
         query_params = urllib.parse.parse_qs(parsed.query)
 
+        # Extract storefront (e.g., 'cn', 'jp', 'us', 'gb', 'tw') from URL path
+        storefront = None
+        if path_parts and len(path_parts[0]) == 2 and path_parts[0].isalpha():
+            storefront = path_parts[0].lower()
+
         # Extract numeric Apple Music ID (track id if ?i= exists, else album id from path)
         lookup_id = None
         if "i" in query_params and query_params["i"] and query_params["i"][0]:
@@ -85,28 +90,38 @@ class AppleMusicDownloader(BaseDownloader):
         # 1. Primary: iTunes Lookup API (Accurate official metadata & 3000x3000 Ultra-HD Artwork)
         if lookup_id:
             try:
+                lookup_url = f"https://itunes.apple.com/lookup?id={lookup_id}&entity=song"
+                if storefront:
+                    lookup_url += f"&country={storefront}"
+                
                 async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
-                    resp = await client.get(f"https://itunes.apple.com/lookup?id={lookup_id}&entity=song")
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        results = data.get("results", [])
-                        if results:
-                            item = results[0]
-                            if media_type == "song":
-                                # Look for track matching ID or use first result
-                                track_item = next((r for r in results if str(r.get("trackId")) == str(lookup_id)), item)
-                                title = track_item.get("trackName") or track_item.get("collectionName") or title
-                                artist = track_item.get("artistName") or artist
-                                art_url = track_item.get("artworkUrl100") or track_item.get("artworkUrl60")
-                            else:
-                                title = item.get("collectionName") or item.get("trackName") or title
-                                artist = item.get("artistName") or artist
-                                art_url = item.get("artworkUrl100") or item.get("artworkUrl60")
-                                if item.get("trackCount"):
-                                    track_count = int(item["trackCount"])
+                    resp = await client.get(lookup_url)
+                    data = resp.json() if resp.status_code == 200 else {}
+                    results = data.get("results", [])
 
-                            if art_url:
-                                thumbnail = re.sub(r"\d+x\d+bb\.(?:jpg|png)", "3000x3000bb.jpg", art_url)
+                    # If country-specific query returned no results, retry without country (defaults to US catalog)
+                    if not results and storefront:
+                        resp_fallback = await client.get(f"https://itunes.apple.com/lookup?id={lookup_id}&entity=song")
+                        if resp_fallback.status_code == 200:
+                            results = resp_fallback.json().get("results", [])
+
+                    if results:
+                        item = results[0]
+                        if media_type == "song":
+                            # Look for track matching ID or use first result
+                            track_item = next((r for r in results if str(r.get("trackId")) == str(lookup_id)), item)
+                            title = track_item.get("trackName") or track_item.get("collectionName") or title
+                            artist = track_item.get("artistName") or artist
+                            art_url = track_item.get("artworkUrl100") or track_item.get("artworkUrl60")
+                        else:
+                            title = item.get("collectionName") or item.get("trackName") or title
+                            artist = item.get("artistName") or artist
+                            art_url = item.get("artworkUrl100") or item.get("artworkUrl60")
+                            if item.get("trackCount"):
+                                track_count = int(item["trackCount"])
+
+                        if art_url:
+                            thumbnail = re.sub(r"\d+x\d+bb\.(?:jpg|png)", "3000x3000bb.jpg", art_url)
             except Exception as e:
                 logger.warning(f"[AppleMusicDownloader] iTunes API 查询失败: {str(e)}")
 

@@ -2,6 +2,30 @@
 
 All notable changes, bug fixes, and feature additions for this project are documented in this file.
 
+## [v0.2.3] - 2026-09-05
+
+### Added
+- **多区 Apple Music 动态国家代码 (Storefront) 透传机制**:
+  - 在 `apple_music.py` 中自动从分享链接提取 Storefront 地区代码（如 `cn`、`jp`、`us`、`tw`、`gb` 等），向 iTunes Lookup API 透传 `&country={storefront}`，并在单区查询无果时自动全区优雅降级。彻底解决非美区曲目因官方 API 缺失国家代码返回空列表而导致元数据及 3000x3000px 超清封面回退为默认占位符的问题。
+- **RFC 6266 标准双格式 Content-Disposition 下载头**:
+  - 在 `routes_download.py` 中同时下发兼容 ASCII 的 `filename="fallback.ext"` 与 UTF-8 编码的 `filename*=UTF-8''...` 规范响应头，彻底消除安卓 Chrome 桌面版模式以及原生下载管理器拦截时因无法解析纯 UTF-8 编码头导致的下载中断或文件名丢失。
+- **移动端与老旧设备（$\le 480px$）专用响应式布局系统**:
+  - **紧凑配额胶囊**: 增加 `.quota-desktop` 与 `.quota-mobile` 策略，大屏显示完整文字（如 `视频: 5/5 | 专辑: 5/5 | 单曲: 10/10`），手机端自动折叠为紧凑徽标（`视:5 · 专:5 · 曲:10`），极窄屏隐藏品牌文字保护导航栏不产生横向溢出。
+  - **自适应配置弹窗**: IP 输入框与“测试连接”按钮在窄屏下自动转为自适应纵向排布，按钮全宽居中，彻底消除水平溢出；底部操作按钮弹性适配，取消按钮设置 `white-space: nowrap; flex-shrink: 0;`，杜绝文字垂直折行；为弹窗补充 `scrollbar-width: thin` 纤细滚动条。
+  - **管理后台数据表格自适应**: 表格增加 `.table-responsive` 容器与 `min-width: 650px`，支持移动端原生动量水平平滑滑动。
+
+### Fixed
+- **任务卡片下载与删除按钮间距及排布优化 (YouTube & Apple Music 通用)**:
+  - 显式声明全局 `.task-actions-main` 样式（`display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;`），将删除按钮标准化为 `inline-flex`，彻底根除桌面端与移动端下载按钮与删除按钮紧贴甚至无间距粘连的 UI 缺陷。
+- **移除 Apple Music 页面冗余的 Wrapper 配置入口**:
+  - 移除了 Apple Music 页面标题旁多余的 `[⚙ Wrapper 配置]` 按钮，与全局导航栏齿轮入口归一化，消除界面元素冲突。
+- **Apple Music 任务卡片方形封面小屏拉伸变形修复**:
+  - 移除了 `@media (max-width: 640px)` 下强制 `.task-thumbnail { width: 100%; height: 140px; }` 的规则，Apple Music 专辑封面固定为精致正方形（`54px x 54px`），采用横向图文排布与 2 行标题弹性截断（`-webkit-line-clamp: 2`）。
+- **Apple Music URL 清洗与 iTunes 域名兼容**:
+  - `url_validator.py` 补充支持 `itunes.apple.com` 域名并自动规范化，去除尾部多余斜杠并清洗无关跟踪参数，完整保留 `?i=` 单曲参数。
+- **自动化测试套件隔离加固**:
+  - 在 `test_api.py` 的测试夹具中对 `settings.DATA_DIR` 进行临时目录隔离，杜绝测试修改持久化写入工作区，新增 3 项回归测试，全套 32 项单元测试全部通过。
+
 ## [v0.2.2] - 2026-08-30
 
 ### Added

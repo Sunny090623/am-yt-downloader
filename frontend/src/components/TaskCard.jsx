@@ -189,7 +189,7 @@ export default function TaskCard({ task, onRetry, onDelete, onRequestDelete, add
         <div className="task-actions">
           {isCompleted && task.download_url && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <div className="task-actions-main">
                 <a
                   href={task.download_url}
                   download={task.file_name || (task.service_type === 'apple_music' ? (task.media_type === 'album' ? 'album.zip' : 'song.m4a') : 'video.mkv')}
@@ -210,10 +210,9 @@ export default function TaskCard({ task, onRetry, onDelete, onRequestDelete, add
                 </a>
 
                 <button
-                  className="btn-cancel"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.55rem 0.85rem' }}
+                  className="btn-cancel btn-task-delete"
                   onClick={handleDeleteClick}
-                  title="删除此视频文件及记录"
+                  title="删除此文件及记录"
                 >
                   <Trash2 size={14} color="#ef4444" />
                   <span>删除</span>

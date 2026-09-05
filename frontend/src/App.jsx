@@ -180,7 +180,6 @@ export default function App() {
             refreshAuth={refreshAuth}
             authStatus={authStatus}
             addToast={addToast}
-            onOpenSettings={() => setIsSettingsModalOpen(true)}
           />
         )}
 

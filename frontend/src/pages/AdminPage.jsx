@@ -245,7 +245,7 @@ export default function AdminPage({
       )}
 
       {/* Global Task Table */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', overflowX: 'auto' }}>
+      <div className="table-responsive" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>全系统任务记录 ({tasks.length})</h3>
           <button className="icon-btn" style={{ width: '30px', height: '30px' }} onClick={refreshTasks} title="刷新表格">
@@ -253,7 +253,7 @@ export default function AdminPage({
           </button>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+        <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
               <th style={{ padding: '0.6rem 0.75rem' }}>标题 / URL</th>

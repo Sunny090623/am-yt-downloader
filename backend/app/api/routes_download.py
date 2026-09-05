@@ -1,3 +1,4 @@
+import re
 import urllib.parse
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -46,15 +47,20 @@ async def download_task_file(
     if not target_file.is_file() or not target_file.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="物理文件已丢失或已过期删除")
 
-    # Safe filename encoding
+    # Safe filename encoding with RFC 6266 compliance (dual filename for mobile/legacy + UTF-8)
     filename = task.file_name or target_file.name
-    encoded_filename = urllib.parse.quote(filename)
+    encoded_filename = urllib.parse.quote(filename, safe="")
+
+    # Create ASCII-safe fallback filename
+    ext = target_file.suffix or ".m4a"
+    stem_ascii = re.sub(r"[^\x20-\x7E]", "_", Path(filename).stem).replace('"', "").replace(";", "").strip("_ ")
+    fallback_filename = f"{stem_ascii}{ext}" if stem_ascii else f"download{ext}"
 
     return FileResponse(
         path=target_file,
         filename=filename,
         headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+            "Content-Disposition": f'attachment; filename="{fallback_filename}"; filename*=UTF-8\'\'{encoded_filename}',
             "Cache-Control": "no-cache"
         }
     )

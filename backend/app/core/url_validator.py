@@ -136,7 +136,8 @@ def validate_and_sanitize_youtube_url(raw_url: str) -> Tuple[bool, Optional[str]
 APPLE_MUSIC_VALID_HOSTS = {
     "music.apple.com",
     "beta.music.apple.com",
-    "classical.music.apple.com"
+    "classical.music.apple.com",
+    "itunes.apple.com"
 }
 
 def validate_and_sanitize_apple_music_url(raw_url: str) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
@@ -176,7 +177,7 @@ def validate_and_sanitize_apple_music_url(raw_url: str) -> Tuple[bool, Optional[
         return False, None, None, "检测到非法的路径遍历字符"
 
     # Safely quote path preserving URL standard characters and percent-encoding Unicode
-    clean_path = urllib.parse.quote(unquoted_path, safe="/-._~")
+    clean_path = urllib.parse.quote(unquoted_path, safe="/-._~").rstrip("/")
 
     # Check if song URL: /song/ or /album/... with ?i=
     if "/song/" in clean_path:

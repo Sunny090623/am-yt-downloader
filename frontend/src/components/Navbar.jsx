@@ -39,22 +39,41 @@ export default function Navbar({
               title="今日下载配额 (普通用户每日自动重置)"
             >
               {currentPage === 'youtube' && (
-                <span>视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+                <>
+                  <span className="quota-desktop">视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+                  <span className="quota-mobile">视: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+                </>
               )}
               {currentPage === 'apple_music' && (
                 <>
-                  <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
-                  <span style={{ opacity: 0.4 }}>|</span>
-                  <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                  <span className="quota-desktop">
+                    <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
+                    <span style={{ opacity: 0.4 }}>|</span>
+                    <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                  </span>
+                  <span className="quota-mobile">
+                    <span>专:<strong>{authStatus.quota.album_remaining}</strong></span>
+                    <span style={{ opacity: 0.4 }}>·</span>
+                    <span>曲:<strong>{authStatus.quota.single_remaining}</strong></span>
+                  </span>
                 </>
               )}
               {currentPage !== 'youtube' && currentPage !== 'apple_music' && (
                 <>
-                  <span>视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
-                  <span style={{ opacity: 0.4 }}>|</span>
-                  <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
-                  <span style={{ opacity: 0.4 }}>|</span>
-                  <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                  <span className="quota-desktop">
+                    <span>视频: <strong>{authStatus.quota.video_remaining}</strong>/{authStatus.quota.video_limit}</span>
+                    <span style={{ opacity: 0.4 }}>|</span>
+                    <span>专辑: <strong>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit}</span>
+                    <span style={{ opacity: 0.4 }}>|</span>
+                    <span>单曲: <strong>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit}</span>
+                  </span>
+                  <span className="quota-mobile">
+                    <span>视:<strong>{authStatus.quota.video_remaining}</strong></span>
+                    <span style={{ opacity: 0.4 }}>·</span>
+                    <span>专:<strong>{authStatus.quota.album_remaining}</strong></span>
+                    <span style={{ opacity: 0.4 }}>·</span>
+                    <span>曲:<strong>{authStatus.quota.single_remaining}</strong></span>
+                  </span>
                 </>
               )}
             </div>

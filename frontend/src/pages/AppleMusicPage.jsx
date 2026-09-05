@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music, Download, Link2, RefreshCw, ListOrdered, Sparkles, Trash2, Disc, Layers, Settings } from 'lucide-react';
+import { Music, Download, Link2, RefreshCw, ListOrdered, Sparkles, Trash2, Disc, Layers } from 'lucide-react';
 import TaskCard from '../components/TaskCard';
 import ConfirmModal from '../components/ConfirmModal';
 import { createDownloadTask, deleteTask, clearFinishedTasks } from '../services/api';
@@ -9,8 +9,7 @@ export default function AppleMusicPage({
   refreshTasks,
   refreshAuth,
   authStatus,
-  addToast,
-  onOpenSettings
+  addToast
 }) {
 
   const [url, setUrl] = useState('');
@@ -143,19 +142,6 @@ export default function AppleMusicPage({
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               今日剩余额度: 专辑 <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.album_remaining}</strong>/{authStatus.quota.album_limit} 张 &nbsp;•&nbsp; 单曲 (Single) <strong style={{ color: 'var(--text-primary)' }}>{authStatus.quota.single_remaining}</strong>/{authStatus.quota.single_limit} 首
             </span>
-          )}
-
-          {onOpenSettings && (
-
-            <button
-              className="btn-cancel"
-              style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-              onClick={onOpenSettings}
-              title="配置 Wrapper 服务端 IP 与 Token"
-            >
-              <Settings size={14} color="#fa233b" />
-              <span>Wrapper 配置</span>
-            </button>
           )}
         </div>
       </div>

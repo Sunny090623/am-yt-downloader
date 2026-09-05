@@ -108,7 +108,7 @@ export default function SettingsModal({
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="modal-card" 
-        style={{ maxWidth: '560px', width: '92%' }} 
+        style={{ maxWidth: '520px', width: '100%' }} 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -138,17 +138,18 @@ export default function SettingsModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '0.75rem'
+            flexWrap: 'wrap',
+            gap: '0.6rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#f59e0b' }}>
-              <Shield size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#f59e0b', flex: 1, minWidth: '180px' }}>
+              <Shield size={16} style={{ flexShrink: 0 }} />
               <span>当前为只读模式。修改服务配置需要管理员权限。</span>
             </div>
             {onOpenAdminLogin && (
               <button 
                 type="button"
                 className="btn-primary"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
                 onClick={() => {
                   onClose();
                   onOpenAdminLogin();
@@ -166,25 +167,24 @@ export default function SettingsModal({
             <span>正在读取已有 config.yaml 配置...</span>
           </div>
         ) : (
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             
             {/* 1. Wrapper Server IP Section */}
-            <div style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
-                  <Server size={16} color="#fa233b" />
+            <div className="settings-card-section">
+              <div className="settings-section-header">
+                <label style={{ fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
+                  <Server size={16} color="#fa233b" style={{ flexShrink: 0 }} />
                   <span>Apple Music Wrapper 服务端 IP</span>
                 </label>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                   自动配置 10020 / 20020
                 </span>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="settings-ip-group">
                 <input
                   type="text"
                   className="url-input"
-                  style={{ flex: 1, padding: '0.65rem 0.85rem', fontSize: '0.9rem' }}
                   placeholder="例如: 192.168.3.154"
                   value={wrapperIp}
                   onChange={(e) => {
@@ -196,15 +196,7 @@ export default function SettingsModal({
 
                 <button
                   type="button"
-                  className="btn-cancel"
-                  style={{ 
-                    padding: '0 0.9rem', 
-                    fontSize: '0.85rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.35rem',
-                    whiteSpace: 'nowrap'
-                  }}
+                  className="btn-cancel settings-test-btn"
                   onClick={handleTestConnection}
                   disabled={testing || !wrapperIp.trim()}
                   title="探测 Wrapper 服务的 10020 端口连通性"
@@ -247,17 +239,17 @@ export default function SettingsModal({
             </div>
 
             {/* 2. Apple Music Media-User-Token Section */}
-            <div style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
-                  <Key size={16} color="#6366f1" />
-                  <span>Media-User-Token (Apple Music 凭据)</span>
+            <div className="settings-card-section">
+              <div className="settings-section-header">
+                <label style={{ fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
+                  <Key size={16} color="#6366f1" style={{ flexShrink: 0 }} />
+                  <span>Media-User-Token (凭据)</span>
                 </label>
 
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.2rem 0', flexShrink: 0 }}
                 >
                   {showToken ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showToken ? '隐藏' : '显示'}</span>
@@ -272,7 +264,8 @@ export default function SettingsModal({
                   fontSize: '0.85rem',
                   minHeight: '68px',
                   resize: 'vertical',
-                  fontFamily: showToken ? 'var(--font-mono)' : 'inherit'
+                  fontFamily: showToken ? 'var(--font-mono)' : 'inherit',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="粘贴你的 media-user-token (以 0. 开头的 Base64 凭据，若仅下载 ALAC 免 Token 则可留空)"
                 value={showToken ? mediaUserToken : (mediaUserToken ? '••••••••••••••••••••••••••••••••••••••••••••••••' : '')}
@@ -287,7 +280,7 @@ export default function SettingsModal({
             </div>
 
             {/* Actions Footer */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div className="settings-footer">
               <button
                 type="button"
                 className="btn-cancel"
@@ -300,8 +293,7 @@ export default function SettingsModal({
               {authStatus?.is_admin && (
                 <button
                   type="submit"
-                  className="btn-primary"
-                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  className="btn-primary settings-save-btn"
                   disabled={saving}
                 >
                   {saving ? (

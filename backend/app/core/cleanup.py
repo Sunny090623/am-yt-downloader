@@ -63,11 +63,12 @@ async def run_cleanup_cycle() -> Dict[str, Any]:
         try:
             for item in settings.TEMP_DIR.iterdir():
                 try:
-                    if item.is_file() and item.stat().st_mtime < cutoff_time:
-                        freed_bytes += item.stat().st_size
+                    st = item.stat()
+                    if item.is_file() and st.st_mtime < cutoff_time:
+                        freed_bytes += st.st_size
                         item.unlink(missing_ok=True)
                         cleaned_temp_files += 1
-                    elif item.is_dir() and item.stat().st_mtime < cutoff_time:
+                    elif item.is_dir() and st.st_mtime < cutoff_time:
                         shutil.rmtree(item, ignore_errors=True)
                         cleaned_temp_files += 1
                 except Exception:

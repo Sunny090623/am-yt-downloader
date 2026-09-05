@@ -10,6 +10,8 @@ class MediaMetadata:
     uploader: Optional[str] = None
     duration: Optional[int] = None
     thumbnail_url: Optional[str] = None
+    is_playlist: bool = False
+    playlist_count: Optional[int] = None
 
 # Progress callback type: (percent: float, speed_str: Optional[str], eta_str: Optional[str], downloaded_bytes: Optional[int], total_bytes: Optional[int])
 ProgressCallback = Callable[[float, Optional[str], Optional[str], Optional[int], Optional[int]], Awaitable[None]]

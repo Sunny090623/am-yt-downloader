@@ -2,6 +2,7 @@ from datetime import date
 from typing import Tuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.models.usage import DailyUsage
 from app.models.task import MediaType
@@ -27,9 +28,14 @@ async def get_or_create_daily_usage(db: AsyncSession, user_id: str, today: Optio
             album_count=0,
             single_count=0
         )
-        db.add(usage)
-        await db.commit()
-        await db.refresh(usage)
+        try:
+            db.add(usage)
+            await db.commit()
+            await db.refresh(usage)
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(stmt)
+            usage = result.scalar_one()
         
     return usage
 

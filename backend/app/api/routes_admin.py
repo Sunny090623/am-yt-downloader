@@ -18,12 +18,14 @@ from app.schemas.admin import (
     CleanupResponse,
     AppleMusicConfigResponse,
     UpdateAppleMusicConfigRequest,
-    TestWrapperResponse
+    TestWrapperResponse,
+    ChangeAdminPasswordRequest
 )
 
-from app.core.auth import require_admin, UserContext
+from app.core.auth import require_admin, UserContext, verify_admin_password
 from app.core.task_manager import task_manager
 from app.core.cleanup import run_cleanup_cycle
+from app.core.process_utils import resolve_binary
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"], dependencies=[Depends(require_admin)])
 
@@ -46,27 +48,6 @@ def get_dir_size(path: Path) -> int:
                 except Exception:
                     pass
     return total
-
-import sys
-
-def resolve_binary(binary_name_or_path: str) -> str:
-    found = shutil.which(binary_name_or_path)
-    if found:
-        return found
-    
-    # Check Python environment directory (Conda / venv / Scripts / bin)
-    py_dir = Path(sys.executable).parent
-    candidates = [
-        py_dir / "Scripts" / f"{binary_name_or_path}.exe",
-        py_dir / "Scripts" / binary_name_or_path,
-        py_dir / "bin" / binary_name_or_path,
-        py_dir / f"{binary_name_or_path}.exe",
-        py_dir / binary_name_or_path,
-    ]
-    for c in candidates:
-        if c.exists() and c.is_file():
-            return str(c)
-    return binary_name_or_path
 
 async def check_binary_version(cmd_path: str, args: list) -> str:
     import subprocess
@@ -365,13 +346,6 @@ async def test_wrapper_connectivity(req: UpdateAppleMusicConfigRequest):
             target=target_addr
         )
 
-
-from pydantic import BaseModel, Field
-from app.core.auth import verify_admin_password
-
-class ChangeAdminPasswordRequest(BaseModel):
-    current_password: str = Field(..., min_length=1, description="当前密码")
-    new_password: str = Field(..., min_length=6, description="新管理员密码 (至少6位)")
 
 @router.post("/change-password")
 async def change_admin_password(

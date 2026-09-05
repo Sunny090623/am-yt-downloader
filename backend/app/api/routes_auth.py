@@ -35,9 +35,18 @@ async def admin_login(
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
     
-    # Clean expired failure timestamps
-    attempts = [ts for ts in _FAILED_LOGINS[client_ip] if now - ts < _WINDOW_SECONDS]
-    _FAILED_LOGINS[client_ip] = attempts
+    # Prune stale IPs if tracking dict grows large
+    if len(_FAILED_LOGINS) > 100:
+        stale_ips = [ip for ip, timestamps in _FAILED_LOGINS.items() if not timestamps or (now - timestamps[-1] >= _WINDOW_SECONDS)]
+        for ip in stale_ips:
+            _FAILED_LOGINS.pop(ip, None)
+
+    # Clean expired failure timestamps for current client IP
+    attempts = [ts for ts in _FAILED_LOGINS.get(client_ip, []) if now - ts < _WINDOW_SECONDS]
+    if attempts:
+        _FAILED_LOGINS[client_ip] = attempts
+    else:
+        _FAILED_LOGINS.pop(client_ip, None)
     
     if len(attempts) >= _MAX_FAILURES:
         raise HTTPException(

@@ -12,7 +12,7 @@ class SSEHub:
         self._lock = asyncio.Lock()
 
     async def subscribe(self, user_id: str, is_admin: bool) -> Tuple[asyncio.Queue, AsyncGenerator[str, None]]:
-        queue = asyncio.Queue()
+        queue = asyncio.Queue(maxsize=500)
         async with self._lock:
             if is_admin:
                 self._admin_subscribers.add(queue)

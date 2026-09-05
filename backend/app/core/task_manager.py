@@ -244,8 +244,7 @@ class DownloadTaskManager:
                 status=TaskStatus.CANCELLED.value,
                 error_message="下载任务已取消"
             )
-            async with AsyncSessionLocal() as db:
-                await refund_quota(db, user_id, is_admin, media_type)
+            # Note: Quota refund is already performed in cancel_task() to avoid double refunding.
 
         except Exception as e:
             # Clean up temp files

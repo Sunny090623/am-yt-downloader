@@ -1,4 +1,7 @@
+import asyncio
+import shutil
 import uuid
+from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse
@@ -11,6 +14,7 @@ from app.schemas.task import CreateTaskRequest, TaskResponse, TaskListResponse
 from app.core.auth import get_current_user_context, UserContext
 from app.core.task_manager import task_manager
 from app.core.sse_hub import sse_hub
+from app.core.logger import logger
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 

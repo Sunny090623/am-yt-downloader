@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AM-YT Downloader API",
     description="Personal Media Downloader Service for Synology NAS and Windows",
-    version="0.1.0",
+    version="0.2.4",
     lifespan=lifespan
 )
 

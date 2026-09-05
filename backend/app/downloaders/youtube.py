@@ -3,6 +3,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 from typing import Optional, Tuple
@@ -10,36 +11,13 @@ from app.config import settings
 from app.downloaders.base import BaseDownloader, MediaMetadata, ProgressCallback
 from app.core.url_validator import validate_and_sanitize_youtube_url
 from app.core.logger import logger
+from app.core.process_utils import resolve_binary, kill_proc_tree
 
 PROGRESS_REGEX = re.compile(r"\[PROGRESS\]:\s*([\d\.]+)%?\|([^|]*)\|([^|]*)\|([^|]*)\|([^|\r\n]*)")
 FALLBACK_PERCENT_REGEX = re.compile(r"\[download\]\s+([\d\.]+)%")
 FALLBACK_SPEED_REGEX = re.compile(r"at\s+([\d\.]+\s*[kKMGT]?i?B/s)")
 FALLBACK_ETA_REGEX = re.compile(r"ETA\s+([\d:]+)")
 
-import sys
-
-def resolve_binary(binary_name_or_path: str) -> str:
-    """
-    Resolves binary path across Windows (.exe/.cmd) and Linux.
-    Falls back to original string if shutil.which returns None.
-    """
-    found = shutil.which(binary_name_or_path)
-    if found:
-        return found
-    
-    # Check Python environment directory (Conda / venv / Scripts / bin)
-    py_dir = Path(sys.executable).parent
-    candidates = [
-        py_dir / "Scripts" / f"{binary_name_or_path}.exe",
-        py_dir / "Scripts" / binary_name_or_path,
-        py_dir / "bin" / binary_name_or_path,
-        py_dir / f"{binary_name_or_path}.exe",
-        py_dir / binary_name_or_path,
-    ]
-    for c in candidates:
-        if c.exists() and c.is_file():
-            return str(c)
-    return binary_name_or_path
 
 def get_ytdlp_cmd_base() -> list:
     """Resolves executable path or fallback python module invocation."""
@@ -52,18 +30,6 @@ def get_ytdlp_cmd_base() -> list:
     except ImportError:
         return [resolved]
 
-def kill_proc_tree(pid: int) -> None:
-    """Kills a process and all of its spawned child processes across Windows & Linux."""
-    try:
-        if sys.platform == "win32":
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
-        else:
-            try:
-                os.killpg(os.getpgid(pid), 9)
-            except Exception:
-                os.kill(pid, 9)
-    except Exception:
-        pass
 
 class YouTubeDownloader(BaseDownloader):
 

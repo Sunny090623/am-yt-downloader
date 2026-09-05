@@ -2,6 +2,31 @@
 
 All notable changes, bug fixes, and feature additions for this project are documented in this file.
 
+## [v0.2.4] - 2026-09-05
+
+### Fixed
+- **跨平台进程管理与运行时崩溃修复**:
+  - 新增 `app/core/process_utils.py`，集中实现跨 Windows 与 Linux 的 `resolve_binary()` 和 `kill_proc_tree()`。
+  - 彻底修复 `apple_music.py` 中缺失 `sys` 导入导致的取消下载时 `NameError`。
+  - 彻底修复 `youtube.py` 中缺失 `os` 导入导致在 POSIX / Docker 环境下取消下载时 `NameError`。
+- **任务删除接口依赖缺失修复**:
+  - 修复 `routes_tasks.py` 中缺失 `asyncio`、`shutil`、`Path` 与 `logger` 导入导致的删除任务异常。
+- **Apple Music 任务元数据丢失修复**:
+  - 扩充 `base.py` 中 `MediaMetadata` dataclass，支持 `is_playlist` 与 `playlist_count` 字段，杜绝元数据解析时抛出 `TypeError` 降级而丢失标题、艺术家与封面信息。
+- **取消任务配额重复退还修复**:
+  - 修复 `task_manager.py` 在取消下载时捕获 `CancelledError` 再次退款的缺陷，确保取消任务仅扣除/退还一次额度。
+- **临时文件清理竞态条件消除**:
+  - 优化 `cleanup.py`，统一缓存 `item.stat()`，消除并发删除时的二次调用异常。
+- **管理员密码内存安全强化**:
+  - 修改密码后将 `config.py` 中的 `ADMIN_PASSWORD` 重置为 `None`，仅保留不可逆哈希，消除进程内存明文残留。
+
+### Optimized
+- **高并发与内存稳定性强化**:
+  - `quota.py`: 捕获并发 `IntegrityError` 并自动回滚重查，保障多用户首次请求的配额幂等性。
+  - `routes_auth.py`: 自动修剪登录防爆破记录中的空 IP 与过期条目，防止无感内存增长。
+  - `sse_hub.py`: 设置 `asyncio.Queue(maxsize=500)` 上限，配合丢弃机制防止后台冻结客户端耗尽内存。
+  - `routes_admin.py`: 提取密码修改数据模型至 `schemas/admin.py` 并规范顶部导入。
+
 ## [v0.2.3] - 2026-09-05
 
 ### Added

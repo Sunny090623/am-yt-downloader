@@ -77,7 +77,7 @@ class Settings(BaseSettings):
         salt = bcrypt.gensalt()
         new_hash = bcrypt.hashpw(new_password.encode("utf-8")[:72], salt).decode("utf-8")
         self._cached_admin_hash = new_hash
-        self.ADMIN_PASSWORD = new_password
+        self.ADMIN_PASSWORD = None
         
         try:
             self.DATA_DIR.mkdir(parents=True, exist_ok=True)

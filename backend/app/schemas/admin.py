@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class DiskUsageInfo(BaseModel):
     total_bytes: int
@@ -41,4 +41,8 @@ class TestWrapperResponse(BaseModel):
     online: bool
     message: str
     target: str
+
+class ChangeAdminPasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, description="当前密码")
+    new_password: str = Field(..., min_length=6, description="新管理员密码 (至少6位)")
 

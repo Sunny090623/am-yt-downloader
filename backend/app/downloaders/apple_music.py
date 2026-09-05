@@ -20,6 +20,7 @@ from app.downloaders.base import BaseDownloader, MediaMetadata, ProgressCallback
 from app.core.url_validator import validate_and_sanitize_apple_music_url
 from app.core.logger import logger, APPLE_MUSIC_LOG_DIR, APPLE_MUSIC_LOG_FILE
 from app.core.token_refresher import token_manager
+from app.core.process_utils import kill_proc_tree
 
 
 TRACK_PROGRESS_REGEX = re.compile(r"Track\s+(\d+)\s+of\s+(\d+):", re.IGNORECASE)
@@ -28,18 +29,6 @@ TRACK_TITLE_REGEX = re.compile(r"^\d{2}\.\s+(.+)$")
 
 QUALITY_REGEX = re.compile(r"(\d+-bit\s*/\s*\d+\s*Hz|\d+\s*Kbps)", re.IGNORECASE)
 
-def kill_proc_tree(pid: int) -> None:
-    """Kills a process and all of its spawned child processes across Windows & Linux."""
-    try:
-        if sys.platform == "win32":
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
-        else:
-            try:
-                os.killpg(os.getpgid(pid), 9)
-            except Exception:
-                os.kill(pid, 9)
-    except Exception:
-        pass
 
 class AppleMusicDownloader(BaseDownloader):
 
